@@ -6,6 +6,7 @@ from god_eye_system.user.models import Topology, NodeType, db, FavoriteTopology,
 from god_eye_system.utils import check_admin, check_topology_get, check_topology_post
 from god_eye_system.topology.utils import chech_topology_eol, delete_topology, copy_smokeping_path, jwt_generate
 from god_eye_system.settings import GRAFANA_PING_DELAY_URL, GRAFANA_DROP_RATE_URL
+from pytools.utils import alert_get_zabbix_hostname
 
 from sqlalchemy import text, desc
 import datetime
@@ -468,7 +469,7 @@ def node_list():
         else:
             node = Node.create(
                 name=name, topology_name=topology_name, ip=ip, node_type=node_type)
-
+        _topology_get_all_zabbix_name(topology_name)
         return {'error': 0, 'info': '创建成功', "id": node.id}
     search = request.args.get('search', default="")
     topology_name = request.args.get('topology_name', default="")
@@ -554,7 +555,7 @@ def create_nodes_piliang():
         switch = Node.query.filter(text("ip='{}' and topology_name='{}'".format(d["uplink_ip"].strip(),topology_name))).first()
         if switch is not None:
             Link.create(topology_name=topology_name,source=switch.id,target=node.id)
-    
+    _topology_get_all_zabbix_name(topology_name)
     return {"error":0,"info":"创建成功！"}
 
 @blueprint.route("/create_switches_piliang",methods=["POST"])
@@ -586,6 +587,7 @@ def create_switches_piliang():
             Link.create(topology_name=topology_name,source=switch.id,target=node.id)
     if tip_flag:
         return {"error":1,"info":"存在设备类型填写错误的情况！"}
+    _topology_get_all_zabbix_name(topology_name)
     return {"error":0,"info":"创建成功！"}
 
 @blueprint.route("/node_group_config_page")
@@ -1092,3 +1094,68 @@ def ping_target_list():
     targets = SmokepingTarget.query.filter_by(topology_name=topology_name).all()
     result = [{'host':t.host,'path':t.smokeping_path} for t in targets]
     return jsonify(result)
+
+@blueprint.route('/get_names_for_alert_center')
+@login_required
+def get_names_for_alert_center():
+    operate = request.args.get('operate',type=int,default=0)
+    if operate == 0:
+        node_id = request.args.get('node_id',type=int)
+        nodes = NodeForAlertCenter.query.filter_by(node_id=node_id).all()
+        result = [{'hostname':n.alertcenter_name,'id':n.id} for n in nodes]
+        return jsonify(result)
+    elif operate == 1:
+        node_id = request.args.get('node_id',type=int)
+        hostname = request.args.get('hostname')
+
+        node = Node.query.filter_by(id=node_id).first()
+        top = Topology.query.filter_by(name=node.topology_name).first()
+
+        NodeForAlertCenter.create(topology_id=top.id,topology_name=top.name,node_id=node_id,alertcenter_name=hostname)
+
+        return {'error':0,'info':'添加完毕'}
+    elif operate == 2:
+        ids = request.args.getlist('ids[]')
+        db.session.execute(text('delete from node_for_alert_centers where id in ({})'.format(','.join(ids))))
+        db.session.commit()
+        return {'error':0,'info':'删除完毕'}
+
+@blueprint.route('/topology_get_all_zabbix_name')
+@login_required
+def topology_get_all_zabbix_name():
+    is_all = request.args.get('is_all',type=int,default=0)
+    if is_all == 0:
+        top_name = request.args.get('topology_name')
+        if _topology_get_all_zabbix_name(top_name):
+            return {'error':0,'info':'同步完毕'}
+        else:
+            return {'error':1,'info':'发生了位置未知错误'}
+    else:
+        tops=Topology.query.all()
+        for top in tops:
+            _topology_get_all_zabbix_name(top.name)
+        return {'error':0,'info':'同步完毕'}
+
+def _topology_get_all_zabbix_name(top_name):
+    top = Topology.query.filter_by(name=top_name).first()
+    nodes = Node.query.filter_by(topology_name=top_name).all()
+    ips = [n.ip for n in nodes]
+    ip2id = { n.ip:n.id for n in nodes}
+    result = alert_get_zabbix_hostname(ips)
+    nodes_for_ip = Node.query.filter(text('''
+                                          topology_name='{}'
+                                          '''.format(top_name,))).all()
+    for node in nodes_for_ip:
+        n = NodeForAlertCenter.query.filter(text('''
+                topology_id={} and node_id={} and alertcenter_name='{}'
+            '''.format(top.id,node.id,node.ip))).first()
+        if n is None:
+            NodeForAlertCenter.create(topology_id=top.id,topology_name=top.name,node_id=node.id,alertcenter_name=node.ip)
+    for k,v in result.items():
+        for name in v:
+            n = NodeForAlertCenter.query.filter(text('''
+                topology_id={} and node_id={} and alertcenter_name='{}'
+            '''.format(top.id,ip2id[k],name))).first()
+            if n is None:
+                NodeForAlertCenter.create(topology_id=top.id,topology_name=top.name,node_id=ip2id[k],alertcenter_name=name)
+    return True

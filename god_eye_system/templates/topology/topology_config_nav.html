@@ -81,7 +81,8 @@
         <div class="col-4">
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <p></p>
+                    <p><a href="#" data-toggle="modal" data-target="#modelId8">告警中心同步<span
+                                class="badge badge-primary">3</span></a></p>
                 </div>
             </div>
         </div>
@@ -268,6 +269,27 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
                 <button type="button" class="btn btn-danger" id="confirm_delete_a_topology">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId8" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">告警中心同步</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+                正在将您创建的设备节点，与告警中心的告警进行关联，您将在拓扑图中看到这些告警信息。
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">知道了</button>
             </div>
         </div>
     </div>
@@ -470,6 +492,19 @@
                 return false;
             }
             location.href = "{{url_for('topology.topology_show')}}?topology_name=" + encodeURIComponent(topology_name);
+        });
+        
+        $("#modelId8").on('shown.bs.modal', function (e) {
+            $.get("{{url_for('topology.topology_get_all_zabbix_name')}}", {
+                topology_name: topology_name
+            },
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        $("#modelId8").modal('hide');
+                    }
+                },
+                "json"
+            );
         });
 
         $("#add_new_node_button").click(function (e) {

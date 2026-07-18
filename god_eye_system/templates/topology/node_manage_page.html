@@ -91,6 +91,8 @@
                             id="go_to_group_config_page">配置分组</button>
                         <button type="button" class="btn btn-primary btn-sm mt-2"
                             id="go_to_smokeping_targets_cfg_page">Smokeping设置</button>
+                        <button type="button" class="btn btn-primary btn-sm mt-2"
+                            id="get_alert_center_host_name">同步告警中心</button>
                     </form>
                 </div>
             </div>
@@ -222,6 +224,61 @@
         </div>
     </div>
 </div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId6" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog"
+    aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+
+                <h5 class="modal-title"><span class="spinner-border" role="status" aria-hidden="true"></span>CMDB数据同步中
+                </h5>
+            </div>
+            <div class="modal-body">
+                请耐心等待,同步时间因CMDB中依赖关系的规模而异，规模越大，同步时间越长！
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId9" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">告警中心关联项</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="form-inline mb-2">
+                    <div class="form-group mr-1">
+                        <label for="">主机名</label>
+                        <input type="hidden" id="modelId9_node_id">
+                        <input type="text" id="modelId9_hostname" class="form-control">
+                    </div>
+                    <button type="button" class="btn btn-primary mr-1" id="modelId9_add_btn">新增</button>
+                    <button type="button" class="btn btn-danger" id="modelId9_del_btn">删除选中</button>
+                </form>
+                <table id="modelId9_table" data-toggle="table" data-locale="zh-CN" data-click-to-select="true"
+                    data-pagination="true">
+                    <thead>
+                        <tr>
+                            <th data-field="state" data-checkbox="true"></th>
+                            <th data-field="hostname">主机名</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="modelId9_submit">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block js %}
@@ -239,10 +296,23 @@
             '<a class="node_edit" href="javascript:void(0)" title="修改">',
             '<i class="fa fa-edit"></i>', ,
             '</a>  ',
+            '<a class="zabbixname" href="javascript:void(0)" title="关联告警中心告警">',
+            '<i class="fa fa-cog"></i>', ,
+            '</a>  ',
         ].join('')
     }
 
     window.operateEventsNode = {
+        'click .zabbixname': function (e, value, row, index) {
+            $("#modelId9").modal('show');
+            $("#modelId9_node_id").val(row.id);
+
+            $("#modelId9_table").bootstrapTable('refresh', {
+                url: "{{url_for('topology.get_names_for_alert_center')}}?node_id=" + row.id,
+                pageSize: 10,
+                pageNumber: 1,
+            });
+        },
         'click .node_edit': function (e, value, row, index) {
             $("#edit_node_id").val(row.id);
             $("#edit_node_topology_name").val(row.topology_name);
@@ -391,6 +461,53 @@
             };
             reader.readAsBinaryString(file);
 
+        });
+        $("#modelId9_add_btn").click(function (e) {
+            e.preventDefault();
+            $.get("{{url_for('topology.get_names_for_alert_center')}}", {
+                operate: 1,
+                node_id: $("#modelId9_node_id").val(),
+                hostname: $("#modelId9_hostname").val(),
+            },
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        $("#modelId9_table").bootstrapTable('refresh');
+                    }
+                },
+                "json"
+            );
+        });
+
+        $("#modelId9_del_btn").click(function (e) {
+            e.preventDefault();
+            let ids = [];
+            let rows = $("#modelId9_table").bootstrapTable('getSelections');
+            rows.forEach(el => {
+                ids.push(el.id)
+            });
+            $.get("{{url_for('topology.get_names_for_alert_center')}}", {
+                operate: 2,
+                ids: ids
+            },
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        $("#modelId9_table").bootstrapTable('refresh');
+                    }
+                },
+                "json"
+            );
+        });
+
+        $("#get_alert_center_host_name").click(function (e) {
+            e.preventDefault();
+            $.get("{{url_for('topology.topology_get_all_zabbix_name')}}", {
+                topology_name: topology_name
+            },
+                function (data, textStatus, jqXHR) {
+                    api_result(data)
+                },
+                "json"
+            );
         });
 
         $("#go_to_group_config_page").click(function (e) {
