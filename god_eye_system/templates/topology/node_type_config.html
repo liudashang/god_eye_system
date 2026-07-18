@@ -1,0 +1,252 @@
+{% extends "layout.html" %}
+{% block css %}
+<style>
+    table {
+        font-size: 12px;
+    }
+
+    div.seperate-line {
+        background-color: rgb(182, 219, 219);
+        text-align: center;
+    }
+
+    .g-dark-anchor {
+        height: 60px;
+        margin-top: -60px;
+    }
+    
+    div.seperate-line {
+        background-color: rgb(182, 219, 219);
+        text-align: center;
+    }
+
+    body {
+        background-color: #e6e6e6;
+    }
+
+    .g-topology-show {
+        height: 240px;
+    }
+
+    .g-card-button {
+        -webkit-transition-duration: 0.4s;
+        /* Safari */
+        transition-duration: 0.4s;
+        cursor: pointer;
+    }
+
+    .g-card-button:hover {
+        background-color: #f3f3f3;
+    }
+
+    .g-row-basis {
+        background-color: #f3f3f3;
+    }
+
+    .g-row-link {
+        background-color: #f3f3f3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if topology_name != "" %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a
+                href="{{url_for('topology.topology_config_nav',topology_name=topology_name)}}">{{topology_name}}设置</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">节点类型设置</li>
+    </ol>
+</nav>
+{% endif %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">{{topology_name}}节点类型设置</h1>
+        <p class="lead">
+            在此处，您可以创建新的节点类型，并自定义图标。<br>
+            以在拓扑图中表示不同的设备。
+        </p>
+        {% if topology_name != '' %}
+        <button type="button" class="btn btn-primary" id="view_topology_show"><i class="fa fa-share"
+                aria-hidden="true"></i>查看拓扑图</button>
+        <button type="button" class="btn btn-primary" id="view_topology_config"><i class="fa fa-share"
+                aria-hidden="true"></i>返回设置</button>
+        {% endif %}
+    </div>
+</div>
+<div class="container">
+    <div class="row mb-2">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">创建</h4>
+                    <form id="create_group_form">
+                        <div class="form-group">
+                            <label for="create_group_form_name">类型名称</label>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <input type="text" class="form-control" name="name" id="create_group_form_name">
+                        </div>
+                        <div class="form-group">
+                            <label for="create_group_form_img_url">图片url</label>
+                            <input type="text" class="form-control" name="img_url" id="create_group_form_img_url">
+                        </div>
+                        <div class="form-group">
+                            <label for="create_group_form_cn_name">中文名称</label>
+                            <input type="text" class="form-control" name="cn_name" id="create_group_form_cn_name">
+                        </div>
+                        <div class="form-group">
+                            <label for="create_group_form_keyword">关键字</label>
+                            <input type="text" class="form-control" name="keyword" id="create_group_form_keyword">
+                        </div>
+                        <button type="button" class="btn btn-primary" id="create_group_form_submit">提交</button>
+                        <button type="button" class="btn btn-primary" id="create_group_form_delete">删除选中</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">现有类型明细</h4>
+                    <table id="node_types_table" data-toggle="table" data-locale="zh-CN" data-click-to-select="true"
+                        data-url="{{url_for('topology.node_type_list')}}" data-pagination="true" data-search="true">
+                        <thead>
+                            <tr>
+                                <th data-field="state" data-checkbox="true"></th>
+                                <th data-field="name">名称</th>
+                                <th data-field="cn_name">中文名称</th>
+                                <th data-field="keyword">识别关键字</th>
+                                <th data-field="img_url">图表URL</th>
+                                <th data-field="operate" data-formatter="operateFormatter" data-click-to-select="false"
+                                    data-events="operateEvents">操作</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal -->
+<div class="modal fade" id="modelId1" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">修改</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="edit_group_form">
+                    <div class="form-group">
+                        <label for="edit_group_form_name">类型名称</label>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <input type="hidden" name="id" id="edit_group_form_id" />
+                        <input type="text" class="form-control" name="name" id="edit_group_form_name">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_group_form_img_url">图片url</label>
+                        <input type="text" class="form-control" name="img_url" id="edit_group_form_img_url">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_group_form_cn_name">中文名称</label>
+                        <input type="text" class="form-control" name="cn_name" id="edit_group_form_cn_name">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_group_form_keyword">关键字</label>
+                        <input type="text" class="form-control" name="keyword" id="edit_group_form_keyword">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="edit_group_form_submit">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    function operateFormatter(value, row, index) {
+        return [
+            '<a class="edit" href="javascript:void(0)" title="修改类型信息">',
+            '<i class="fa fa-cog"></i>', ,
+            '</a>  '
+        ].join('')
+    }
+
+    window.operateEvents = {
+        'click .edit': function (e, value, row, index) {
+            $("#edit_group_form_id").val(row.id);
+            $("#edit_group_form_name").val(row.name);
+            $("#edit_group_form_img_url").val(row.img_url);
+            $("#edit_group_form_cn_name").val(row.cn_name);
+            $("#edit_group_form_keyword").val(row.keyword);
+            $("#edit_group_form_cmdb_class").val(row.cmdb_class);
+            $("#modelId1").modal('show');
+        }
+    }
+
+    $(document).ready(function () {
+        $("#create_group_form_submit").click(function (e) {
+            e.preventDefault();
+            $.post("{{url_for('topology.node_type_list')}}", $("#create_group_form").serializeArray(), function (data) {
+                if (data.error == 1) {
+                    toastr.warning(data.info);
+                } else {
+                    toastr.success(data.info);
+                    $("#node_types_table").bootstrapTable('refresh');
+                }
+            });
+        });
+        $("#create_group_form_delete").click(function (e) {
+            e.preventDefault();
+            let rows = $("#node_types_table").bootstrapTable('getSelections');
+            if (rows.length == 0) {
+                return;
+            }
+
+            rows.forEach(r => {
+
+                $.get("{{ url_for('topology.node_type_list') }}", {
+                    id: r.id,
+                    operate: 0
+                }, data => {
+                    if (data.error == 1) {
+                        toastr.warning(data.info);
+                    } else {
+                        toastr.success(data.info);
+                    }
+                });
+            });
+        });
+
+        $("#edit_group_form_submit").click(function (e) {
+            e.preventDefault();
+            $.post("{{ url_for('topology.edit_node_type') }}", $("#edit_group_form").serializeArray(),
+                function (data, textStatus, jqXHR) {
+                    api_result(data);
+                },
+                "dataType"
+            );
+        });
+
+        $("#view_topology_show").click(function (e) {
+            e.preventDefault();
+            location.href = "{{url_for('topology.topology_show')}}?topology_name=" + encodeURIComponent(topology_name);
+        });
+        $("#view_topology_config").click(function (e) {
+            e.preventDefault();
+            location.href = "{{url_for('topology.topology_config_nav',topology_name=topology_name)}}";
+        });
+    });
+</script>
+{% endblock %}

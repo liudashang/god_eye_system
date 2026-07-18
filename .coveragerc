@@ -1,0 +1,6 @@
+[run]
+source = god_eye_system
+omit = 
+    tests/*
+    autoapp.py
+

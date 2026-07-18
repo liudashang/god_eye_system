@@ -1,0 +1,495 @@
+{% extends "layout.html" %}
+
+{% block css %}
+<style>
+    body {
+        background-color: #e6e6e6;
+    }
+
+    .g-topology-show {
+        height: 240px;
+    }
+
+    .g-card-button {
+        -webkit-transition-duration: 0.4s;
+        /* Safari */
+        transition-duration: 0.4s;
+        cursor: pointer;
+    }
+
+    .g-card-button:hover {
+        background-color: #f3f3f3;
+    }
+
+    .g-row-basis {
+        background-color: #f3f3f3;
+    }
+
+    .g-row-link {
+        background-color: #f3f3f3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        {% if topology_name != '' %}
+        <h1 class="display-4">{{topology_name}}拓扑图配置</h1>
+        {% else %}
+        <h1 class="display-4">新建拓扑图</h1>
+        {% endif %}
+        <p class="lead">包括基本信息、节点、线路三部分配置。<br>
+            为了获得一个完整功能的拓扑图，请将“必要”部分的配置填写完成，尤其要完成带有<span class="badge badge-primary">1</span>标志的配置项。<br>
+            在填写前，您需要了解应用系统在<strong>CMDB中的英文全称等</strong>信息。<br>
+            为了您的拓扑图，具有更丰富的表现力，推荐您深入探索“高级配置”。
+        </p>
+        {% if topology_name != '' %}
+        <button type="button" class="btn btn-primary" id="view_topology_show"><i class="fa fa-share"
+                aria-hidden="true"></i>查看拓扑图</button>
+        {% endif %}
+    </div>
+</div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-1">
+
+        </div>
+        <div class="col-3">
+            必要配置
+        </div>
+        <div class="col-4">
+            快捷配置
+        </div>
+        <div class="col-4">
+            高级配置
+        </div>
+    </div>
+    <div class="row g-row-basis py-2">
+        <div class="col-1">
+            基本信息
+        </div>
+        <div class="col-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <p><a href="#" data-toggle="modal" data-target="#modelId1">拓扑图基本信息<span
+                                class="badge badge-primary">1</span></a></p>
+                    <p><a href="#" data-toggle="modal" data-target="#modelId7">删除拓扑图</a></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <p></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <p><a href="javascript:void(0)" onclick="hop_iframe_embed()">仪表盘设置</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row g-row-node py-2">
+        <div class="col-1">
+            设备节点
+        </div>
+        <div class="col-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <p><a href="#" data-toggle="modal" data-target="#modelId2">节点新增<span
+                                class="badge badge-primary">2</span></a></p>
+                    <p><a href="javascript:void(0)" onclick="hop_node_manage()">已有节点管理</a></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <p><a href="javascript:void(0)" onclick="hop_node_manage(1)">网络设备批量导入</a></p>
+                    <p><a href="javascript:void(0)" onclick="hop_node_manage(2)">工站批量导入</a></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <p><a href="javascript:void(0)" onclick="hop_group_config()">节点分组设置</a></p>
+                    <p><a href="#" data-toggle="modal" data-target="#modelId10">监控数据展示设置</a></p>
+                    <p><a href="javascript:void(0)" onclick="hop_node_type_list()">设备节点类型管理</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row g-row-link py-2">
+        <div class="col-1">
+            线路连线
+        </div>
+        <div class="col-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <p><a href="#" href="javascript:void(0)" onclick="hop_link_manage()">线路新增<span
+                                class="badge badge-primary">4</span></a></p>
+                    <p><a href="#" href="javascript:void(0)" onclick="hop_link_manage(1)">已有线路管理</a></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <p><a href="javascript:void(0)" onclick="hop_topology_link_mode()">拓扑图画线模式</a></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <p><a href="#" onclick="hop_ping_config_nav()">网络延迟丢包检查设置</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId1" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">拓扑图基本信息</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="topology_general_info_form">
+                    <div class="form-group">
+                        <label for="">拓扑图名称</label>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <input type="text" class="form-control" name="name" id="topology_general_info_form_name"
+                            readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="">所属一级部门</label>
+                        <select class="form-control" name="bg" id="topology_general_info_form_bg">
+                        </select>
+                        <small class="form-text text-muted">新增<a href="javascript:void(0)"
+                                onclick="hop_bu_config()">部门</a></small>
+                    </div>
+                    <div class="form-group">
+                        <label for="">所属二级部门</label>
+                        <select class="form-control" name="bu" id="topology_general_info_form_bu">
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="">是否停线</label>
+                        <select class="form-control" name="is_tingxian" id="topology_general_info_form_is_tingxian">
+                            <option value="false">否</option>
+                            <option value="true">是</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="">是否EOL</label>
+                        <select class="form-control" name="is_eol" id="topology_general_info_form_is_eol">
+                            <option value="false">否</option>
+                            <option value="true">是</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="topology_general_info_form_submit">保存</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId2" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">节点新增</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="add_new_node">
+                    <div class="form-group">
+                        <label for="new_node_topology_name">拓扑图名称</label>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <input type="text" class="form-control" name="topology_name" id="new_node_topology_name"
+                            value="{{topology_name}}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_node_name">节点名称</label>
+                        <input type="text" class="form-control" name="name" id="new_node_name">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_node_ip">节点IP</label>
+                        <input type="text" class="form-control" name="ip" id="new_node_ip">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_node_type">节点类型</label>
+                        <select class="form-control" name="node_type" id="new_node_type">
+                            {% for n in node_types %}
+                            <option value="{{n.name}}">{{n.cn_name}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="add_new_node_button">新增</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId7" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">是否删除拓扑图</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    确定要删除该拓扑图吗？删除将清理所有的信息，无法恢复。如非必要，推荐使用EOL设置（只清理告警监控项，节点、连线信息保留）。
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirm_delete_a_topology">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId10" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">请选择监控数据设置方式</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="card g-card-button" style="height: 160px;" onclick="hop_node_metric()">
+                                <div class="card-body">
+                                    <h4 class="card-title"><i class="fa fa-cube" aria-hidden="true" /></i> 主机监控</h4>
+                                    <p class="card-text">为拓扑图中的某一台设备增加Zabbix监控数据图表</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card g-card-button" style="height: 160px;" onclick="hop_zabbix_template()">
+                                <div class="card-body">
+                                    <h4 class="card-title"><i class="fa fa-cubes" aria-hidden="true" /></i> 监控模板</h4>
+                                    <p class="card-text">为一个节点类型统一增加Zabbix监控数据图表</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    var topology_name = "{{topology_name}}";
+
+    function check_create_model() {
+        if (topology_name == "") {
+            $("#topology_general_info_form_name").removeAttr('readonly')
+        }
+    }
+
+    function get_topology_general_info() {
+        $("#topology_general_info_form_name").val(topology_name);
+        $.get("{{url_for('topology.topology_general_info')}}", {
+            name: topology_name
+        },
+            function (data, textStatus, jqXHR) {
+                $("#topology_general_info_form_is_tingxian").val(data.is_tingxian);
+                $("#topology_general_info_form_is_eol").val(data.is_eol);
+                $("#topology_general_info_form_playlist_url").val(data.playlist_url);
+                $("#topology_general_info_form_igoer_group_id").val(data.igoer_group_id);
+                $("#topology_general_info_form_location").val(data.location);
+                let bg = data.bg;
+                let bu = data.bu;
+                $.get("{{url_for('user.bu_list_simple')}}", {},
+                    function (data, textStatus, jqXHR) {
+                        $("#topology_general_info_form_bg").empty();
+                        data.forEach(element => {
+                            $("#topology_general_info_form_bg").append(`<option>${element}</option>`);
+                        });
+                        $("#topology_general_info_form_bg").val(bg);
+                        $.get("{{url_for('user.bu_list_simple_bu')}}", {
+                            bu_parent: bg
+                        },
+                            function (data, textStatus, jqXHR) {
+                                $("#topology_general_info_form_bu").empty();
+                                data.forEach(element => {
+                                    $("#topology_general_info_form_bu").append(`<option>${element}</option>`);
+                                });
+                                $("#topology_general_info_form_bu").val(bu);
+                            },
+                            "json"
+                        );
+                    },
+                    "json"
+                );
+            },
+            "json"
+        );
+    }
+
+    function hop_bu_config() {
+        location.href = "{{url_for('user.bu_config_page')}}?topology_name=" + encodeURIComponent(topology_name);
+    }
+
+    function hop_node_type_list() {
+        location.href = "{{url_for('topology.node_type_list_page')}}?topology_name=" + encodeURIComponent(topology_name);
+    }
+
+    function hop_topology_link_mode() {
+        location.href = "{{url_for('topology.topology_show')}}?open_link_mode=开启&topology_name=" + encodeURIComponent(topology_name);
+    }
+
+    function hop_ping_config_nav() {
+        location.href = "{{url_for('topology.ping_config_nav')}}?topology_name=" + encodeURIComponent(topology_name);
+    }
+
+    function hop_iframe_embed() {
+        location.href = "{{url_for('topology.iframe_embed_url_manage')}}?from_where=nav&topology_name=" + encodeURIComponent(topology_name);
+    }
+
+    function hop_group_config() {
+        location.href = "{{url_for('topology.node_group_config_page')}}?from_where=nav&topology_name=" + encodeURIComponent(topology_name);
+    }
+
+    function hop_node_metric() {
+        location.href = "{{url_for('topology.node_metric_config_page')}}?topology_name=" + encodeURIComponent(topology_name);
+    }
+
+    function hop_zabbix_template() {
+        location.href = "{{url_for('topology.zabbix_template_config_page')}}?topology_name=" + encodeURIComponent(topology_name);
+    }
+
+    function hop_node_manage(id = 0) {
+        let anchor = '#anchor_created_node_manage';
+        if (id == 1) {
+            anchor = "#anchor_switch_import";
+        } else if (id == 2) {
+            anchor = "#anchor_pc_import";
+        }
+        location.href = "{{url_for('topology.node_manage_page')}}?topology_name=" + encodeURIComponent(topology_name) + anchor;
+    }
+
+    function hop_link_manage(id = 0) {
+        let anchor = '';
+        if (id == 1) {
+            anchor = "#anchor_link_table";
+        }
+        location.href = "{{url_for('topology.link_manage_page')}}?topology_name=" + encodeURIComponent(topology_name) + anchor;
+    }
+
+    $(function () {
+        check_create_model();
+        get_topology_general_info();
+
+        $("#nav_li_topology").addClass("active");
+
+        $("#topology_general_info_form_bg").change(function (e) {
+            e.preventDefault();
+            let bg = $("#topology_general_info_form_bg").val();
+            $.get("{{url_for('user.bu_list_simple_bu')}}", {
+                bu_parent: bg
+            },
+                function (data, textStatus, jqXHR) {
+                    $("#topology_general_info_form_bu").empty();
+                    data.forEach(element => {
+                        $("#topology_general_info_form_bu").append(`<option>${element}</option>`);
+                    });
+                    $("#topology_general_info_form_bu").val(bu);
+                },
+                "json"
+            );
+        });
+
+        $("#topology_general_info_form_submit").click(function (e) {
+            e.preventDefault();
+            $.post("{{url_for('topology.topology_general_info')}}", $("#topology_general_info_form").serializeArray(),
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        if (topology_name == "") {
+                            topology_name = $("#topology_general_info_form_name").val();
+                            $("#new_node_topology_name").val(topology_name);
+                            $("#topology_general_info_form_name").attr('readonly', 'readonly');
+                        }
+                    }
+                },
+                "json"
+            );
+        });
+
+        $("#confirm_delete_a_topology").click(function (e) {
+            e.preventDefault();
+            $.get("{{url_for('topology.delete_a_topology')}}", {
+                topology_name: topology_name,
+            },
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        //location.reload();
+                        locatin.href = "{{url_for('user.members')}}"
+                    }
+                },
+                "json"
+            );
+        });
+
+        $("#view_topology_show").click(function (e) {
+            e.preventDefault();
+            if (topology_name == "") {
+                return false;
+            }
+            location.href = "{{url_for('topology.topology_show')}}?topology_name=" + encodeURIComponent(topology_name);
+        });
+
+        $("#add_new_node_button").click(function (e) {
+            e.preventDefault();
+            if ($("#new_node_name").val() == "" || $("#new_node_ip").val() == "") {
+                toastr.warning("各参数不能为空！");
+                return false;
+            }
+            if ($("#new_node_ip").val().indexOf(',') != -1 || $("#new_node_ip").val().indexOf(' ') != -1) {
+                toastr.warning("IP地址填写错误！");
+                return false;
+            }
+            $.post("{{url_for('topology.node_list')}}", $("#add_new_node").serializeArray(), function (data) {
+                if (data.error == 1) {
+                    toastr.warning(data.info);
+                } else {
+                    toastr.success(data.info);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

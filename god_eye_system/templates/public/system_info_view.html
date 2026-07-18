@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="list-group">
+            {% for file in files %}
+                <a href="javascript:void()" class="list-group-item list-group-item-action" onclick="show_file_info('{{file}}')">{{file}}</a>
+            {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">文件内容(最后2000行)</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-12">
+                            <textarea id="file_content" readonly style="width: 100%;height: 70vh;"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    function show_file_info(file) {
+        $.get("{{url_for('public.show_system_log')}}", {
+            operate:1,
+            file:file
+        },
+            function (data, textStatus, jqXHR) {
+                if(api_result(data)){
+                    $("#file_content").val(data.content);
+                    $('#modelId').modal('show');
+                }  
+            },
+            "json"
+        );
+    }
+</script>
+{% endblock %}

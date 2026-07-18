@@ -1,0 +1,407 @@
+{% extends "layout.html" %}
+
+{% block css %}
+<link rel="stylesheet" type="text/css" href="{{ static_url_for('static', filename='css/bootstrap-select.min.css') }}" />
+<style>
+    .g-dark-anchor {
+        height: 60px;
+        margin-top: -60px;
+    }
+
+    table {
+        font-size: 12px;
+    }
+
+    div.seperate-line {
+        background-color: rgb(182, 219, 219);
+        text-align: center;
+    }
+
+    body {
+        background-color: #e6e6e6;
+    }
+
+    .g-topology-show {
+        height: 240px;
+    }
+
+    .g-card-button {
+        -webkit-transition-duration: 0.4s;
+        /* Safari */
+        transition-duration: 0.4s;
+        cursor: pointer;
+    }
+
+    .g-card-button:hover {
+        background-color: #f3f3f3;
+    }
+
+    .g-row-basis {
+        background-color: #f3f3f3;
+    }
+
+    .g-row-link {
+        background-color: #f3f3f3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if topology_name != None %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a
+                href="{{url_for('topology.topology_config_nav',topology_name=topology_name)}}">{{topology_name}}设置</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">设备节点管理</li>
+    </ol>
+</nav>
+{% endif %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">新增节点</h4>
+                    <form id="add_new_node">
+                        <div class="form-group">
+                            <label for="new_node_topology_name">拓扑图名称</label>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <input type="text" class="form-control" name="topology_name" id="new_node_topology_name"
+                                value="{{topology_name}}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="new_node_name">节点名称</label>
+                            <input type="text" class="form-control" name="name" id="new_node_name">
+                        </div>
+                        <div class="form-group">
+                            <label for="new_node_ip">节点IP</label>
+                            <input type="text" class="form-control" name="ip" id="new_node_ip">
+                        </div>
+                        <div class="form-group">
+                            <label for="new_node_type">节点类型</label>
+                            <select class="form-control" name="node_type" id="new_node_type">
+                                {% for n in node_types %}
+                                <option value="{{n.name}}">{{n.cn_name}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button id="add_new_node_button" type="button" class="btn btn-primary btn-sm mt-2">新增</button>
+                        <button type="button" class="btn btn-primary btn-sm mt-2"
+                            id="go_to_group_config_page">配置分组</button>
+                        <button type="button" class="btn btn-primary btn-sm mt-2"
+                            id="go_to_smokeping_targets_cfg_page">Smokeping设置</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="g-dark-anchor" name="anchor_created_node_manage" id="anchor_created_node_manage"></div>
+    <div class="row mt-2">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">已有节点管理</h4>
+                    <button id="add_new_node_delete_button" type="button"
+                        class="btn btn-danger btn-sm mt-2">删除选中</button>
+                    <table id="nodes_table" data-height="500"
+                        data-url="{{url_for('topology.node_list',topology_name=topology_name)}}" data-toggle="table"
+                        data-locale="zh-CN" data-click-to-select="true" data-server-sort="false" data-search="true"
+                        data-pagination="true">
+                        <thead>
+                            <tr>
+                                <th data-field="state" data-checkbox="true"></th>
+                                <th data-field="id" data-sortable="true">ID</th>
+                                <th data-field="name" data-sortable="true">节点名称</th>
+                                <th data-field="ip" data-sortable="true">节点IP</th>
+                                <th data-field="node_type" data-formatter="nodeTypeFormatter" data-sortable="true">节点类型
+                                </th>
+                                <th data-field="group_name" data-sortable="true">分组</th>
+                                <th data-field="operate" data-formatter="operateFormatterNode"
+                                    data-click-to-select="false" data-events="operateEventsNode">操作</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="g-dark-anchor" name="anchor_switch_import" id="anchor_switch_import"></div>
+    <div class="row mt-2">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">网络设备批量导入</h4>
+                    <div class="card border-primary">
+                        <div class="card-body">
+                            <input type="hidden" id="csrf_token" value="{{ csrf_token() }}" />
+                            <div class="form-group">
+                                <label for="">批量导入网络设备：</label>
+                                <input type="file" class="form-control-file" name="" id="importSwitchFile"
+                                    placeholder="" aria-describedby="fileHelpId">
+                                <small id="fileHelpId"
+                                    class="form-text text-muted">使用excel文件，文件仅保留4列，交换机名称、交换机类型、IP地址、上联交换机IP地址。<a
+                                        href="/download/excel/交换机导入模板.xlsx">下载模板</a></small>
+                            </div>
+                            <button id="importSwitchStart" type="button" class="btn btn-primary">导入</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="g-dark-anchor" name="anchor_pc_import" id="anchor_pc_import"></div>
+    <div class="row mt-2">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">工站批量导入</h4>
+                    <div class="card border-primary">
+                        <div class="card-body">
+                            <input type="hidden" id="csrf_token" value="{{ csrf_token() }}" />
+                            <div class="form-group">
+                                <label for="">批量导入节点：</label>
+                                <input type="file" class="form-control-file" name="" id="importNodeFile" placeholder=""
+                                    aria-describedby="fileHelpId">
+                                <small id="fileHelpId"
+                                    class="form-text text-muted">使用excel文件，文件仅保留4列，工站名称、线体名称、IP地址、上联交换机IP地址。<a
+                                        href="/download/excel/工站批量导入模板.xlsx">下载模板</a></small>
+                            </div>
+                            <button id="importNodeStart" type="button" class="btn btn-primary">导入</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId1" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">修改Node内容</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <form id="edit_node">
+                        <div class="form-group">
+                            <label for="edit_node_topology_name">拓扑图名称</label>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <input type="hidden" name="id" id="edit_node_id" />
+                            <input type="text" class="form-control" name="topology_name" id="edit_node_topology_name"
+                                readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_node_name">节点名称</label>
+                            <input type="text" class="form-control" name="name" id="edit_node_name">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_node_ip">节点IP</label>
+                            <input type="text" class="form-control" name="ip" id="edit_node_ip">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_node_type">节点类型</label>
+                            <select class="form-control" name="node_type" id="edit_node_type">
+                                {% for n in node_types %}
+                                <option value="{{n.name}}">{{n.cn_name}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="edit_node_submit">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="{{ static_url_for('static', filename='js/xlsx.full.min.js') }}"></script>
+<script src="{{ static_url_for('static', filename='js/bootstrap-select.min.js') }}"></script>
+<script>
+    var topology_name = "{{topology_name}}";
+
+    function nodeTypeFormatter(value, row) {
+        return row.node_type_cn_name;
+    }
+
+    function operateFormatterNode(value, row, index) {
+        return [
+            '<a class="node_edit" href="javascript:void(0)" title="修改">',
+            '<i class="fa fa-edit"></i>', ,
+            '</a>  ',
+        ].join('')
+    }
+
+    window.operateEventsNode = {
+        'click .node_edit': function (e, value, row, index) {
+            $("#edit_node_id").val(row.id);
+            $("#edit_node_topology_name").val(row.topology_name);
+            $("#edit_node_name").val(row.name);
+            $("#edit_node_ip").val(row.ip);
+            $("#edit_node_type").val(row.node_type);
+
+            $("#modelId1").modal('show');
+        }
+    }
+
+    $(function () {
+        $("#nav_li_topology").addClass("active");
+
+        $("#add_new_node_button").click(function (e) {
+            e.preventDefault();
+            if ($("#new_node_name").val() == "" || $("#new_node_ip").val() == "") {
+                toastr.warning("各参数不能为空！");
+                return false;
+            }
+            if ($("#new_node_ip").val().indexOf(',') != -1 || $("#new_node_ip").val().indexOf(' ') != -1) {
+                toastr.warning("IP地址填写错误！");
+                return false;
+            }
+            $.post("{{url_for('topology.node_list')}}", $("#add_new_node").serializeArray(), function (data) {
+                if (data.error == 1) {
+                    toastr.warning(data.info);
+                } else {
+                    toastr.success(data.info);
+                    $("#nodes_table").bootstrapTable('refresh');
+                }
+            });
+        });
+
+        $("#edit_node_submit").click(function (e) {
+            e.preventDefault();
+            $.post("{{ url_for( 'topology.edit_node_info' ) }}", $("#edit_node").serializeArray(), function (data) {
+                if (data.error == 1) {
+                    toastr.warning(data.info);
+                } else {
+                    toastr.success(data.info);
+                    $("#modelId1").modal('hide');
+                    $("#nodes_table").bootstrapTable('refresh');
+                }
+            });
+        });
+
+        $("#add_new_node_delete_button").click(function (e) {
+            e.preventDefault();
+            let rows = $("#nodes_table").bootstrapTable('getSelections');
+            if (rows.length == 0) {
+                return;
+            }
+            rows.forEach(el => {
+
+                $.get("{{ url_for('topology.edit_node_info') }}", {
+                    operation: 0,
+                    id: el.id
+                }, data => {
+                    if (data.error == 1) {
+                        toastr.warning(data.info);
+                    } else {
+                        $("#nodes_table").bootstrapTable('refresh');
+                        toastr.success(data.info);
+                    }
+                });
+            });
+        });
+
+        $("#importNodeStart").click(function () {
+            var files = document.querySelector("#importNodeFile").files
+            var file = files[0];
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var data = e.target.result;
+                var excelData = XLSX.read(data, {
+                    type: 'binary'
+                });
+                //excelData.SheetNames[0]是获取Sheets中第一个Sheet的名字
+                //excelData.Sheets[Sheet名]获取第一个Sheet的数据
+                var ws = excelData.Sheets[excelData.SheetNames[0]];
+                var fields = ["name", "group_name", "ip", "uplink_ip"];
+                var json = XLSX.utils.sheet_to_json(ws, { header: fields });
+                json.shift();
+                ip_error_flag = false;
+                json.forEach(element => {
+                    if (element.ip.indexOf(',') != -1 || (element.uplink_ip != undefined && element.uplink_ip.indexOf(',') != -1)) {
+                        ip_error_flag = true;
+                        toastr.warning(`${element.name}的IP或上联IP中存在非法字符!`);
+                    }
+                });
+                if (ip_error_flag) {
+                    return;
+                }
+                $.post("{{url_for('topology.create_nodes_piliang')}}", {
+                    csrf_token: $("#csrf_token").val(),
+                    topology_name: topology_name,
+                    data: JSON.stringify(json)
+                },
+                    function (data, textStatus, jqXHR) {
+                        api_result(data);
+                    },
+                    "json"
+                );
+            };
+            reader.readAsBinaryString(file);
+
+        });
+
+        $("#importSwitchStart").click(function () {
+            var files = document.querySelector("#importSwitchFile").files
+            var file = files[0];
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var data = e.target.result;
+                var excelData = XLSX.read(data, {
+                    type: 'binary'
+                });
+                //excelData.SheetNames[0]是获取Sheets中第一个Sheet的名字
+                //excelData.Sheets[Sheet名]获取第一个Sheet的数据
+                var ws = excelData.Sheets[excelData.SheetNames[0]];
+                var fields = ["name", "node_type", "ip", "uplink_ip"];
+                var json = XLSX.utils.sheet_to_json(ws, { header: fields });
+                json.shift();
+                ip_error_flag = false;
+                json.forEach(element => {
+                    if (element.ip.indexOf(',') != -1 || (element.uplink_ip != undefined && element.uplink_ip.indexOf(',') != -1)) {
+                        ip_error_flag = true;
+                        toastr.warning(`${element.name}的IP或上联IP中存在非法字符!`);
+                    }
+                });
+                if (ip_error_flag) {
+                    return;
+                }
+
+                $.post("{{url_for('topology.create_switches_piliang')}}", {
+                    csrf_token: $("#csrf_token").val(),
+                    topology_name: topology_name,
+                    data: JSON.stringify(json)
+                },
+                    function (data, textStatus, jqXHR) {
+                        api_result(data);
+                    },
+                    "json"
+                );
+            };
+            reader.readAsBinaryString(file);
+
+        });
+
+        $("#go_to_group_config_page").click(function (e) {
+            e.preventDefault();
+            location.href = "{{url_for('topology.node_group_config_page')}}?topology_name=" + encodeURIComponent(topology_name);
+        });
+
+        $("#go_to_smokeping_targets_cfg_page").click(function (e) {
+            e.preventDefault();
+            location.href = "{{url_for('topology.smokeping_targets_cfg_page')}}?topology_name=" + encodeURIComponent(topology_name);
+        });
+    });
+</script>
+{% endblock %}

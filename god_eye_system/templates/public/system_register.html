@@ -1,0 +1,158 @@
+{% extends "layout.html" %}
+{% block css %}
+<style>
+    table {
+        font-size: small;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    通用系统接入注册
+                </div>
+                <div class="card-body">
+                    <table id="system_table" data-toggle="table" data-locale="zh-CN" data-show-export="true"
+                        data-export-data-type="all" data-url="{{url_for('public.system_register_view',operate=1)}}"
+                        data-pagination="true" data-height="650" data-click-to-select="true" data-search="true"
+                        data-buttons-align="left" data-buttons="buttons">
+                        <thead>
+                            <tr>
+                                <th data-field="state" data-checkbox="true"></th>
+                                <th data-field="id">编号</th>
+                                <th data-field="name">主机名称</th>
+                                <th data-field="sys_key">系统key</th>
+                                <th data-field="sys_secret">系统秘钥</th>
+                                <th data-field="description">描述</th>
+                                <th data-field="operate" data-formatter="operateFormatter" data-events="operateEvents">
+                                    操作</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId1" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增系统</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="modelId1_form">
+                    <div class="form-group">
+                        <label for="">系统名称</label>
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <input type="text" class="form-control" name="name" id="modelId1_form_name">
+                    </div>
+                    <div class="form-group">
+                        <label for="">描述</label>
+                        <input type="text" class="form-control" name="description" id="modelId1_form_description">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="modelId1_submit">新增</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId4" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">操作提示</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                确定要进行删除操作吗
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="modelId4_save">删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block js %}
+<script>
+    var wait_del_id;
+    function buttons() {
+        return {
+            btnUsersAdd: {
+                text: '增加',
+                icon: 'fa-plus',
+                event: function () {
+                    $("#modelId1").modal('show');
+                },
+                attributes: {
+                    title: '注册一个新的告警源系统'
+                }
+            },
+        }
+    }
+
+    function operateFormatter(value, row, index) {
+        return [
+            '<a class="trash" href="javascript:void(0)" title="删除">',
+            '<i class="fa fa-trash"></i>',
+            '</a>  ',
+        ].join('')
+    }
+
+    window.operateEvents = {
+        'click .trash': function (e, value, row, index) {
+            wait_del_id = row.id;
+            $("#modelId4").modal('show');
+        }
+    }
+
+    $(function () {
+        $("#modelId1_submit").click(function (e) { 
+            e.preventDefault();
+            $.post("{{url_for('public.system_register_view')}}", $("#modelId1_form").serializeArray(),
+                function (data, textStatus, jqXHR) {
+                    if(api_result(data)){
+                        $("#system_table").bootstrapTable('refresh');
+                        $("#modelId1").modal('hide');
+                    }
+                },
+                "json"
+            );
+        });
+
+        $("#modelId4_save").click(function(e){
+            e.preventDefault();
+            $.get("{{url_for('public.system_register_view')}}", {
+                operate:2,
+                id:wait_del_id
+            },
+                function (data, textStatus, jqXHR) {
+                    if(api_result(data)){
+                        $("#system_table").bootstrapTable('refresh');
+                        wait_del_id = "";
+                        $("#modelId4").modal('hide');
+                    }
+                },
+                "json"
+            );
+        });
+    });
+</script>
+{% endblock %}

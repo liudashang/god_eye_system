@@ -1,0 +1,16 @@
+把public.pem复制到/etc/grafana/路径下，并修改所有者和权限：
+sudo chown root:grafana public.pem
+sudo chmod 640 public.pem
+
+修改配置文件：
+/etc/grafana/grafana.ini
+[security]
+allow_emebeding=true
+[auth.jwt]
+enabled = true
+header_name = X-JWT-Assertion
+email_claim = sub
+username_claim = sub
+key_file = /etc/grafana/public.pem
+url_login = true
+allow_assign_grafana_admin = false

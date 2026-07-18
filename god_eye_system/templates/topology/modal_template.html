@@ -1,0 +1,58 @@
+<div class="mb-3">
+    {% for m in metrics %}
+    <a class="btn btn-primary btn-sm" data-toggle="collapse" href="#collapse_metric_{{m.id}}" role="button"
+        aria-expanded="false" aria-controls="collapseGraph1">
+        {{m.name}}
+    </a>
+    {% endfor %}
+    {% for i in items %}
+    <a class="btn btn-primary btn-sm" data-toggle="collapse" href="#collapse_item_{{i.id}}" role="button"
+        aria-expanded="false" aria-controls="collapseGraph1">
+        {{i.item}}
+    </a>
+    {% endfor %}
+    {% if metric_type==1 %}
+    <a class="btn btn-primary btn-sm" data-toggle="collapse" href="#collapse_link_ping_1" role="button"
+        aria-expanded="false" aria-controls="collapseGraph1">
+        Ping延迟
+    </a>
+    <a class="btn btn-primary btn-sm" data-toggle="collapse" href="#collapse_link_drop_2" role="button"
+        aria-expanded="false" aria-controls="collapseGraph1">
+        丢包率
+    </a>
+    {% endif %}
+</div>
+{% for m in metrics %}
+<div class="collapse metric_collapse" id="collapse_metric_{{m.id}}">
+    <div class="embed-responsive embed-responsive-21by9">
+        <iframe class="embed-responsive-item"
+            src="{{m.grafana_src}}&from={{from_time}}&to={{to_time}}&theme=light&auth_token={{grafana_token}}"
+            width="1000" height="300" frameborder="0"></iframe>
+    </div>
+</div>
+{% endfor %}
+{% for i in items %}
+<div class="collapse metric_collapse" id="collapse_item_{{i.id}}">
+    <div class="embed-responsive embed-responsive-21by9">
+        <iframe class="embed-responsive-item"
+            src="{{i.grafana_src}}&var-ip={{ip}}&var-item={{i.get_item()}}&from={{from_time}}&to={{to_time}}&theme=light&auth_token={{grafana_token}}"
+            width="1000" height="300" frameborder="0"></iframe>
+    </div>
+</div>
+{% endfor %}
+{% if metric_type==1 %}
+<div class="collapse metric_collapse" id="collapse_link_ping_1">
+    <div class="embed-responsive embed-responsive-21by9">
+        <iframe class="embed-responsive-item"
+            src="{{grafana_src_ping_delay}}&var-node_path={{smokeping_path}}&from={{from_time}}&to={{to_time}}&theme=light&auth_token={{grafana_token}}"
+            width="1000" height="300" frameborder="0"></iframe>
+    </div>
+</div>
+<div class="collapse metric_collapse" id="collapse_link_drop_2">
+    <div class="embed-responsive embed-responsive-21by9">
+        <iframe class="embed-responsive-item"
+            src="{{grafana_src_drop_rate}}&var-node_path={{smokeping_path}}&from={{from_time}}&to={{to_time}}&theme=light&auth_token={{grafana_token}}"
+            width="1000" height="300" frameborder="0"></iframe>
+    </div>
+</div>
+{% endif %}

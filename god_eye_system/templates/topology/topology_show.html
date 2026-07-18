@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>{{topology_name}}拓扑图</title>
+    <link rel="stylesheet" type="text/css" href="{{ static_url_for('static', filename='css/jquery-ui.min.css') }}" />
+    <link rel="stylesheet" type="text/css"
+        href="{{ static_url_for('static', filename='css/jquery.contextMenu.min.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='css/bootstrap.min.css')}}">
+    <link rel="stylesheet" type="text/css" href="{{ static_url_for('static', filename='css/font-awesome.min.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='css/toastr.min.css')}}">
+    <link rel="stylesheet" type="text/css" href="{{ static_url_for('static', filename='css/bootstrap-select.min.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ static_url_for('static', filename='css/daterangepicker.css') }}" />
+    <script src="{{url_for('static',filename='js/jquery-3.6.0.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/jquery-ui.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/jquery.contextMenu.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/bootstrap.bundle.min.js')}}"></script>
+    <script src="{{ static_url_for('static', filename='js/bootstrap-select.min.js') }}"></script>
+    <script src="{{url_for('static',filename='js/toastr.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/d3.js')}}"></script>
+    <script src="{{url_for('static',filename='js/d3.tooltip.20220713.js')}}"></script>
+    <script src="{{url_for('static',filename='js/d3_utils.gabriel.202407171336.js')}}"></script>
+    <script src="{{ static_url_for('static', filename='js/moment-with-locales.js') }}"></script>
+    <script src="{{ static_url_for('static', filename='js/daterangepicker.js') }}"></script>
+    <script src="{{ static_url_for('static', filename='js/echarts.min.js') }}"></script>
+
+    <style type="text/css">
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        svg.svg-element {
+            border-style: outset;
+            width: 100%;
+            height: 100%;
+        }
+
+        text.group-name {
+            color: rgb(11, 2, 87);
+            font-weight: 700;
+            font-size: 120%;
+        }
+
+        .popover {
+            max-width: 650px;
+        }
+
+        .popover-body {
+            max-height: 500px;
+            overflow-y: scroll;
+        }
+
+        .gabriel_suofang {
+            margin-left: 10px;
+            display: inline-flex;
+            width: 800px;
+        }
+
+        .draggable_resizable_iframe {
+            padding-top: 20px;
+            background-color: rgb(231, 231, 231);
+            position: absolute;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarScroll"
+            aria-controls="navbarScroll" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarScroll">
+            <img src="/static/img/bootstrap-solid.svg" alt="" width="32" height="32">
+            <a class="navbar-brand" href="#">{{topology_name}}拓扑图</a>
+            <div id="biaoti">
+            </div>
+            {% if ping_status == 0 %}
+            <span class="badge badge-danger">Ping检测工具失效</span>
+            {% endif %}
+            <ul class="navbar-nav mr-auto my-2 my-lg-0 navbar-nav-scroll" style="max-height: 100px;">
+                <li class="nav-item">
+                    <a class="nav-link" data-toggle="collapse" href="#contentId" aria-expanded="false"
+                        aria-controls="contentId">
+                        <i class="fa fa-bars" aria-hidden="true"></i>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-toggle="collapse" href="#contentId2" aria-expanded="false"
+                        aria-controls="contentId">
+                        <i class="fa fa-calendar" aria-hidden="true"></i>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link d-none" id="get_suggestions" data-toggle="popover"
+                        style="color: rgb(255, 208, 0);">
+                        <i class="fa fa-comment-o" aria-hidden="true"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="collapse m-2" id="contentId">
+        <div class="m-2">
+            <form class="form-inline">
+                <a class="btn btn-light" href="{{url_for('user.members')}}" role="button"><i class="fa fa-home"
+                        aria-hidden="true">主页</i></a>
+                <a class="btn btn-light" role="button" onclick="hide_ip()"><i class="fa fa-eye"
+                        aria-hidden="true"></i>{% if need_ip == 'yes' %}隐藏{% else %}显示{% endif %}IP</a>
+                <a class="btn btn-light" role="button" onclick="show_grafana_playlist()" id="show_grafana_playlist_a"><i
+                        class="fa fa-desktop" aria-hidden="true"></i>显示仪表盘</a>
+                {% if current_user.is_admin or current_user.get_role_value("has_config") == "1" %}
+                <a class="btn btn-light" role="button" onclick="config_topology()"><i class="fa fa-cog"
+                        aria-hidden="true"></i>设置</a>
+                <a class="btn btn-light" id="fixAllPosition" role="button" onclick="fix_all_position(simulation)"><i
+                        class="fa fa-lock" aria-hidden="true"></i>一键固定（保存节点位置）</a>
+                <div class="dropdown">
+                    <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton"
+                        data-toggle="dropdown" aria-expanded="false">
+                        <i class="fa fa-pencil-square-o" aria-hidden="true"></i>编辑
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <a class="dropdown-item" id="makeALink" role="button" id="make_a_link_button"
+                            onclick="make_a_link(simulation,topology_name)"><i class="fa fa-play"
+                                aria-hidden="true"></i>画连接线</a>
+                        <a class="dropdown-item" id="brushMode" role="button" id="change_brush_mode_button"
+                            onclick="change_brush_mode(simulation,topology_name)"><i class="fa fa-play"
+                                aria-hidden="true"></i>快捷布局</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" role="button" onclick="node_group_config()"><i class="fa fa-users"
+                                aria-hidden="true"></i>分组设置</a>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="form-group">
+                    <label for=""><i class="fa fa-location-arrow" aria-hidden="true"></i>跳转至：</label>
+                    <select class="form-control selectpicker" data-live-search="true" name="topology_name" id="topology_name_selection">
+                        {% for t in topology_list %}
+                        <option>{{t}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="m-2">
+            <div>
+                <div class="gabriel_suofang">
+                    <a class="btn btn-light" role="button" onclick="svg_minus(0.05)"><i class="fa fa-search-minus"
+                            aria-hidden="true"></i></a>
+                    <input type="range" class="custom-range" id="svg_minus_or_plus" value="100" step="0.1"
+                        style="margin-top: 8px;padding-left: 5px;padding-right: 5px;">
+                    <a class="btn btn-light" role="button" onclick="svg_plus(0.05)"><i class="fa fa-search-plus"
+                            aria-hidden="true"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="collapse m-2" id="contentId2">
+        <div style="width: 600px;">
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <button class="btn btn-outline-secondary" type="button" id="timerange_reset"><i
+                            class="fa fa-refresh" aria-hidden="true">重置时间</i></button>
+                </div>
+                <input type="text" class="form-control" id="timerange_input">
+            </div>
+        </div>
+    </div>
+    <div>
+        <div id="draggable_iframe"></div>
+        <div class="top"></div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="modelId" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="zabbixTitle">设备信息</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="modal_body_1"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modelId3" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="zabbixTitle">节点设置</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                {% if current_user.is_admin or current_user.get_role_value('has_edit_node_info') == "1" or
+                current_user.get_role_value('has_config') == "1" %}
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <form id="modelId3_form">
+                                    <div class="form-group">
+                                        <label for="">设备名称:</label>
+                                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                                        <input type="hidden" name="id" id="modelId3_id">
+                                        <input type="hidden" name="topology_name" id="modelId3_topology_name">
+                                        <input class="form-control" name="name" id="modelId3_name"></input>
+                                    </div>
+                                    <div class="form-group" id="modelId3_hide_input_group">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="">IP地址：</label>
+                                        <input class="form-control" name="ip" id="modelId3_ip"></input>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="new_node_type">节点类型</label>
+                                        <select class="form-control" name="node_type" id="modelId3_node_type">
+                                            {% for n in node_types %}
+                                            <option value="{{n.name}}">{{n.cn_name}}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="modelId3_submit">保存</button>
+                    <button type="button" class="btn btn-primary d-none" id="modelId3_submit_add">新增</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                </div>
+                {% else %}
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <p>抱歉！请联系管理员开通权限</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        var topology_name = "{{ topology_name }}";
+        var div_width = "{{width}}";
+        var div_height = "{{height}}";
+        var mode = "zoom";
+        var need_make_link = false; //画线全局变量
+        var make_link_list = []; //画线全局变量
+        var from = moment().subtract(3, 'hour').format('x');
+        var to = moment().format('x');
+        const csrf_token = "{{csrf_token()}}";
+        const rectWidth = 80;
+        const rectHeight = 50;
+        const need_ip = "{{need_ip}}";
+        var simulation; //D3画图全局对象
+        var node_edit_flag = "{{node_edit_flag}}";
+        var new_node_position = { x: 200, y: 200 };
+        var open_link_mode = "{{open_link_mode}}";
+
+        function init_div_size() {
+            if (div_width >= $(window).width()) {
+                $("body").width(div_width);
+            }
+            $("div .top").width(div_width);
+            $("div .top").height(div_height);
+        }
+        
+        //修改URL，但是可以不刷新网页
+        function change_url() {
+            let url = new URL(window.location.href);
+            let params = new URLSearchParams(url.search);
+            params.set('open_link_mode','关闭');
+            url.search = params.toString();
+            history.replaceState(null,'',url.href);
+        }
+
+        function get_data() {
+
+            $.get("{{url_for('topology.node_json')}}", {
+                topology_name: topology_name,
+            }, function (data) {
+                simulation = setup_top(data.nodes, data.links, data.groups, rectHeight, rectWidth, from, to);
+
+                if (open_link_mode == "开启") {
+                    open_link_mode = "关闭";
+                    change_url();
+                    make_a_link(simulation, topology_name);
+                }
+            });
+        }
+
+
+        function config_topology() {
+            location.href = "{{url_for('topology.topology_config_nav')}}?topology_name=" + encodeURIComponent(topology_name);
+        }
+        function hide_ip() {
+            if (need_ip == 'yes') {
+
+                location.href = "{{url_for('topology.topology_show')}}?need_ip=no&topology_name=" + encodeURIComponent(topology_name);
+            } else {
+                location.href = "{{url_for('topology.topology_show')}}?topology_name=" + encodeURIComponent(topology_name);
+
+            }
+        }
+
+        function node_group_config() {
+            location.href = "{{url_for('topology.node_group_config_page')}}?topology_name=" + encodeURIComponent(topology_name);
+        }
+
+        function show_grafana_playlist() {
+            let a_text = $("#show_grafana_playlist_a").text();
+            if (a_text.indexOf("显示仪表盘") != -1) {
+                $.get("{{url_for('topology.get_update_iframe_embed_url')}}", {
+                    topology_name: topology_name
+                },
+                    function (data, textStatus, jqXHR) {
+                        data.forEach(el => {
+
+                            $("#draggable_iframe").append(
+                                [
+                                    `<div class="ui-widget-content draggable_resizable_iframe" iframe_id=${el.id} style="height:${el.height}px; width: ${el.width}px; top: ${el.top}px; left: ${el.left}px;">`,
+                                    '<div id="iframe-grafana-playlist" class="embed-responsive" style="height:100%;">',
+                                    `<iframe src="${el.url}?kiosk=tv&autofitpanels&theme=light&from=now-3h&to=now&refresh=30s&auth_token=${el.grafana_token}"></iframe>`,
+                                    '</div>',
+                                    '</div>'
+                                ].join("")
+                            );
+                            $(".draggable_resizable_iframe").resizable();
+                            $(".draggable_resizable_iframe").draggable();
+                        });
+                    },
+                    "json"
+                );
+                $("#show_grafana_playlist_a").html('<i class="fa fa-desktop" aria-hidden="true">隐藏仪表盘');
+            } else {
+                $("#draggable_iframe").empty();
+                $("#show_grafana_playlist_a").html('<i class="fa fa-desktop" aria-hidden="true">显示仪表盘');
+            }
+        }
+
+        $(function () {
+            svg_contextmenu();
+            node_contextmenu();
+            line_contextmenu();
+            init_div_size();
+            get_data();
+
+            $("#topology_name_selection").val(topology_name);
+            $("#modal_body_1").on("show.bs.collapse", ".collapse", function (e) {
+                var id = $(this).attr("id");
+                $(".metric_collapse").filter(function () {
+                    return $(this).attr("id") != id;
+                }).collapse('hide');
+            });
+
+            $("#modal_body_1").on("click", "#network_log_query", function (e) {
+                var grafana_url = $("#network_log_no_param_src").val();
+                var severity = $("#network_log_severity").val();
+                var keyword = $("#network_log_keyword").val();
+                $("#collapse_metric_switch_log_1 iframe").attr("src", grafana_url + "&var-severity=" + severity + "&var-keyword=" + keyword);
+            });
+
+            $("#modal_body_1").on("click", "#appserver_iis_query", function (e) {
+                var grafana_url = $("#appserver_iis_no_param_src").val();
+                var time_taken = $("#appserver_iis_time_taken").val();
+                if (time_taken == "") {
+                    toastr.warning("time_taken不能为空！");
+                    return false;
+                }
+                var http_soapaction = $("#appserver_iis_http_soapaction").val();
+                var limit_number = $("#appserver_iis_limit_number").val();
+                var sc_status = $("#appserver_iis_sc_status").val();
+                $("#collapse_metric_app_iis_log_2 iframe").attr("src", grafana_url + `&var-http_soapaction=${http_soapaction}&var-time_taken=${time_taken}&var-limit_number=${limit_number}&var-sc_status=${sc_status}`);
+            });
+
+            $("#modal_body_1").on("click", "#appserver_chart_iis_query", function (e) {
+                var grafana_url = $("#appserver_chart_iis_no_param_src").val();
+                var time_taken = $("#appserver_chart_iis_time_taken").val();
+                if (time_taken == "") {
+                    toastr.warning("time_taken不能为空！");
+                    return false;
+                }
+
+                $("#collapse_metric_app_iis_log_1 iframe").attr("src", grafana_url + `&var-time_taken=${time_taken}`);
+            });
+
+            $("#topology_name_selection").change(function (e) {
+                e.preventDefault();
+                location.href = "{{ url_for('topology.topology_show') }}?topology_name=" + encodeURIComponent($("#topology_name_selection").val());
+            });
+
+            $('#timerange_input').daterangepicker({
+                timePicker: true,
+                timePickerSeconds: true,
+                timePicker24Hour: true,
+                startDate: moment().subtract(3, 'hour'),
+                endDate: moment(),
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm:ss',
+                    applyLabel: '确定', //确定按钮文本
+                    cancelLabel: '取消', //取消按钮文本
+                    daysOfWeek: ['日', '一', '二', '三', '四', '五', '六'],
+                    monthNames: ['一月', '二月', '三月', '四月', '五月', '六月',
+                        '七月', '八月', '九月', '十月', '十一月', '十二月'],
+                    firstDay: 1
+                }
+            }, (start, end, lable) => {
+                simulation.gabriel_from = start.format('x');
+                simulation.gabriel_to = end.format('x');
+                console.log(start.format('YYYY-MM-DD HH:mm:ss'), end.format('YYYY-MM-DD HH:mm:ss'));
+                console.log(start.format('X'), end.format('X'));
+                simulation.gabriel_time_flag = true;
+            });
+
+            $("#timerange_reset").click(function (e) {
+                e.preventDefault();
+                simulation.gabriel_time_flag = false;
+                $("#timerange_input").val("默认过去3小时内的监控数据");
+            });
+
+            $("#link_config_submit").click(function (e) {
+                e.preventDefault();
+                id = $("#link_config_link_id").val();
+                source_port = $("#link_config_source_port").val();
+                target_port = $("#link_config_target_port").val();
+                if (id == "" || (source_port == "" && target_port == "")) {
+                    toastr.warning("请认真填写信息");
+                    return false;
+                }
+                $.post("{{url_for('topology.edit_link_other_info')}}", $("#link_config_form").serializeArray(),
+                    function (data, textStatus, jqXHR) {
+                        toastr.success(data.info);
+                        $("#modelId1").modal('hide');
+                    },
+                    "json"
+                );
+            });
+
+            $("#modelId3_submit").click(function (e) {
+                e.preventDefault();
+                let id = $("#modelId3_id").val();
+                let name = $("#modelId3_name").val();
+                let ip = $("#modelId3_ip").val();
+                let node_type = $("#modelId3_node_type").val();
+                $.post("{{url_for('topology.edit_node_info')}}", $("#modelId3_form").serializeArray(),
+                    function (data, textStatus, jqXHR) {
+                        if (data.error == 0) {
+                            $("#modelId3").modal('hide');
+                            toastr.success(data.info);
+                            change_node_text(simulation, id, name, ip, node_type);
+                        }
+                    },
+                    "json"
+                );
+            });
+
+            $("#modelId3_submit_add").click(function (e) {
+                e.preventDefault();
+                let id = $("#modelId3_id").val();
+                let name = $("#modelId3_name").val();
+                let ip = $("#modelId3_ip").val();
+                let node_type = $("#modelId3_node_type").val();
+                let fx = $("#modelId3_fx").val();
+                let fy = $("#modelId3_fy").val();
+                $.post("{{url_for('topology.node_list')}}", $("#modelId3_form").serializeArray(),
+                    function (data, textStatus, jqXHR) {
+                        if (name == "" || ip == "") {
+                            toastr.warning("各参数不能为空！");
+                            return false;
+                        }
+                        if (ip.indexOf(',') != -1 || ip.indexOf(' ') != -1) {
+                            toastr.warning("IP地址填写错误！");
+                            return false;
+                        }
+                        if (data.error == 0) {
+                            $("#modelId3").modal('hide');
+                            toastr.success(data.info);
+                            add_node(simulation, data.id, name, ip, node_type, fx, fy);
+                        } else {
+                            toastr.warning(data.info);
+                        }
+                    },
+                    "json"
+                );
+            });
+
+            $("#svg_minus_or_plus").change(function (e) {
+                e.preventDefault();
+                let scale = $("#svg_minus_or_plus").val();
+                scale_svg(scale / 100);
+            });
+        });
+
+    </script>
+</body>
+
+</html>

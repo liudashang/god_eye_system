@@ -1,0 +1,52 @@
+<div class="accordion" id="accordionTopFavroite">
+    {% if '最近访问' in data %}
+    <div class="card">
+        <div class="card-header" id="{{data['最近访问']['html_id'][0]}}">
+            <h2 class="mb-0">
+                <button class="btn btn-link btn-block text-left {{data['最近访问']['html_id'][4]}}" type="button"
+                    data-toggle="collapse" data-target="#{{data['最近访问']['html_id'][1]}}" aria-expanded="{{data['最近访问']['html_id'][2]}}"
+                    aria-controls="{{data['最近访问']['html_id'][1]}}">
+                    最近访问
+                </button>
+            </h2>
+        </div>
+
+        <div id="{{data['最近访问']['html_id'][1]}}" class="collapse {{data['最近访问']['html_id'][3]}}" aria-labelledby="{{data['最近访问']['html_id'][0]}}"
+            data-parent="#accordionTopFavroite">
+            <div class="card-body">
+                <ul>
+                    {% for top in data['最近访问']['tops'] %}
+                    <li><a href="{{url_for('topology.topology_show',topology_name=top)}}">{{top}}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% for k,v in data.items() %}
+    {% if k != '最近访问' %}
+    <div class="card">
+        <div class="card-header" id="{{v['html_id'][0]}}">
+            <h2 class="mb-0">
+                <button class="btn btn-link btn-block text-left {{v['html_id'][4]}}" type="button"
+                    data-toggle="collapse" data-target="#{{v['html_id'][1]}}" aria-expanded="{{v['html_id'][2]}}"
+                    aria-controls="{{v['html_id'][1]}}">
+                    {{k}}
+                </button>
+            </h2>
+        </div>
+
+        <div id="{{v['html_id'][1]}}" class="collapse {{v['html_id'][3]}}" aria-labelledby="{{v['html_id'][0]}}"
+            data-parent="#accordionTopFavroite">
+            <div class="card-body">
+                <ul>
+                    {% for top in v['tops'] %}
+                    <li><a href="{{url_for('topology.topology_show',topology_name=top)}}">{{top}}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>

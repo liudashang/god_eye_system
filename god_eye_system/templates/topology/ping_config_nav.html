@@ -1,0 +1,124 @@
+{% extends "layout.html" %}
+{% block css %}
+<style>
+    table {
+        font-size: 12px;
+    }
+
+    body {
+        background-color: #e6e6e6;
+    }
+
+    .g-topology-show {
+        height: 500px;
+    }
+
+    .g-card-button {
+        -webkit-transition-duration: 0.4s;
+        /* Safari */
+        transition-duration: 0.4s;
+        cursor: pointer;
+    }
+
+    .g-card-button:hover {
+        background-color: #f3f3f3;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a
+                href="{{url_for('topology.topology_config_nav',topology_name=topology_name)}}">{{topology_name}}设置</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">网络延迟丢包检测设置</li>
+    </ol>
+</nav>
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">{{topology_name}}网络延迟丢包检测功能</h1>
+        <p class="lead">
+            该功能，可以实现针对拓扑图中的所有设备节点的<strong>7X24小时的批量Ping检测</strong>。<br>
+            该功能，需要用户自行准备一台windows电脑或服务器，安装天眼系统的Ping工具。<br>
+            Ping数据的准确与否，与Ping工具安装的主机，在<strong>网络中的位置</strong>息息相关。<br>
+            配置成功后：<br>
+            <strong>可以在拓扑图中查看线路Ping数据报表</strong><br>
+            <strong>实时展示线路通断、丢包状态</strong><br>
+            <strong>通过IGoer、电话接收到Ping告警</strong><br>
+        </p>
+    </div>
+</div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">请选择</h4>
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-4">
+                                <div class="card g-card-button shadow-sm" style="height: 160px;"
+                                    onclick="hop_ping_client_page()">
+                                    <div class="card-body">
+                                        <h4 class="card-title"><i class="fa fa-plus" aria-hidden="true" /></i> <span
+                                                class="badge badge-primary">1.</span>Ping客户端管理</h4>
+                                        <p class="card-text">安装和管理Ping检测客户端。</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="card g-card-button shadow-sm" style="height: 160px;"
+                                    onclick="hop_ping_target_config()">
+                                    <div class="card-body">
+                                        <h4 class="card-title"><i class="fa fa-television" aria-hidden="true" /></i>
+                                            <span class="badge badge-primary">2.</span>Ping目标主机管理</h4>
+                                        <p class="card-text">选择要进行Ping检测的目的主机。</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="card g-card-button shadow-sm" style="height: 160px;"
+                                    onclick="hop_link_manage(1)">
+                                    <div class="card-body">
+                                        <h4 class="card-title"><i class="fa fa-chain" aria-hidden="true" /></i> <span
+                                                class="badge badge-primary">3.</span>Ping检测数据展示</h4>
+                                        <p class="card-text">将拓扑图中的线路连线与Ping策略关联起来，实现在拓扑图中点击线路弹窗展示数据图表。</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    const topology_name = "{{topology_name}}";
+
+    function hop_ping_client_page() {
+        location.href = "{{url_for('topology.ping_client_page',topology_name=topology_name)}}"
+    }
+
+    function hop_ping_target_config() {
+        location.href = "{{url_for('topology.smokeping_targets_cfg_page')}}?topology_name=" + encodeURIComponent(topology_name);
+    }
+
+    function hop_link_manage(id = 0) {
+        let anchor = '';
+        if (id == 1) {
+            anchor = "#anchor_link_table";
+        }
+        location.href = "{{url_for('topology.link_manage_page')}}?from_where=ping&topology_name=" + encodeURIComponent(topology_name) + anchor;
+    }
+
+    $(function () {
+        $("#nav_li_topology").addClass("active");
+
+    });
+</script>
+
+{% endblock %}

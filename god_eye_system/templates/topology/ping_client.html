@@ -1,0 +1,260 @@
+{% extends "layout.html" %}
+{% block css %}
+<style>
+    table {
+        font-size: 12px;
+    }
+
+    div.seperate-line {
+        background-color: rgb(182, 219, 219);
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a
+                href="{{url_for('topology.topology_config_nav',topology_name=topology_name)}}">{{topology_name}}设置</a>
+        </li>
+        <li class="breadcrumb-item"><a
+                href="{{url_for('topology.ping_config_nav',topology_name=topology_name)}}">{{topology_name}}网络丢包延迟检测设置</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">Ping客户端管理设置</li>
+    </ol>
+</nav>
+<div class="container">
+    <div class="seperate-line">
+        <h5>Ping客户端列表</h5>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <table id="pingclieng_table" data-toggle="table" data-locale="zh-CN" data-click-to-select="true"
+                data-url="{{url_for('topology.ping_client_page',operate=1)}}" data-height="400"
+                data-side-pagination="server" data-pagination="true">
+                <thead>
+                    <tr>
+                        <th data-field="state" data-checkbox="true"></th>
+                        <th data-field="hostname">主机名称</th>
+                        <th data-field="description">描述</th>
+                        <th data-field="ip">IP地址</th>
+                        <th data-field="enabled" data-formatter="enabledFormatter">是否启用</th>
+                        <th data-field="time_out">超时</th>
+                        <th data-field="time_interval">Ping间隔</th>
+                        <th data-field="ping_count">Ping次数</th>
+                        <th data-field="avg_rtt">延迟阈值</th>
+                        <th data-field="packet_loss">丢包阈值（%）</th>
+                        <th data-field="operate" data-formatter="operateFormatter" data-events="operateEvents"
+                            data-click-to-select="false">操作</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+    <div class="seperate-line">
+        <h5>客户端迁移</h5>
+    </div>
+    <div class="row justify-content-md-center">
+        <div class="col-md-6">
+            <form id="exchange_form">
+                <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                <div class="form-group">
+                    <label for="">待迁移的客户端</label>
+                    <select class="form-control" name="source_hostname">
+                        {% for c in client_list %}
+                        <option>{{c}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="">目标客户端</label>
+                    <select class="form-control" name="target_hostname">
+                        {% for c in client_list %}
+                        <option>{{c}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="button" class="btn btn-primary" id="exchange_form_submit">提交</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId1" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑Ping客户端信息</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="modelId1_form">
+                    <div class="form-group">
+                        <label for="">主机名称</label>
+                        <input type="hidden" name="id" id="modelId1_form_id">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <input type="text" class="form-control" name="hostname" id="modelId1_form_hostname" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="">描述</label>
+                        <input type="text" class="form-control" name="description" id="modelId1_form_description">
+                    </div>
+                    <div class="form-group">
+                        <label for="">IP地址</label>
+                        <input type="text" class="form-control" name="ip" id="modelId1_form_ip">
+                    </div>
+                    <div class="form-group">
+                        <label for="">是否启用</label>
+                        <select class="form-control" name="enabled" id="modelId1_form_enabled">
+                            <option value="1">是</option>
+                            <option value="0">否</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="">超时</label>
+                        <input type="text" class="form-control" name="time_out" id="modelId1_form_time_out"
+                            aria-describedby="timeoutHelp">
+                        <small id="timeoutHelp"
+                            class="form-text text-muted">ping不通的默认超时时间,该值应大于Ping间隔×Ping次数。单位h小时，m分钟，s秒，ms毫秒</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="">Ping间隔</label>
+                        <input type="text" class="form-control" name="time_interval" id="modelId1_form_time_interval"
+                            aria-describedby="timeintervalHelp">
+                        <small id="timeintervalHelp"
+                            class="form-text text-muted">两次Ping之间的时间间隔。单位h小时，m分钟，s秒，ms毫秒</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="">Ping次数</label>
+                        <input type="text" class="form-control" name="ping_count" id="modelId1_form_ping_count">
+                    </div>
+                    <div class="form-group">
+                        <label for="">延迟阈值</label>
+                        <input type="text" class="form-control" name="avg_rtt" id="modelId1_form_avg_rtt"
+                            aria-describedby="avgrttHelp">
+                        <small id="avgrttHelp" class="form-text text-muted">产生告警的最小延迟,单位ms毫秒</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="">丢包阈值</label>
+                        <input type="text" class="form-control" name="packet_loss" id="modelId1_form_packet_loss">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="modelId1_submit">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId2" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">删除客户端</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                确定要删除该客户端吗？（相关的线路、节点设置将会被修改）
+                <input type="hidden" id="modelId2_input_hostname">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="modelId2_del_submit">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    function enabledFormatter(value) {
+        if (value == 1) {
+            return "是"
+        } else if (value == 0) {
+            return "否"
+        }
+    }
+
+    function operateFormatter(value, row, index) {
+        return [
+            '<a class="edit" href="javascript:void(0)" title="修改客户端设置">',
+            '<i class="fa fa-pencil-square-o"></i>',
+            '</a>  ',
+            '<a class="trash" href="javascript:void(0)" title="删除">',
+            '<i class="fa fa-trash"></i>',
+            '</a>  '
+        ].join('')
+    }
+
+    window.operateEvents = {
+        'click .edit': function (e, value, row, index) {
+            $("#modelId1_form_hostname").val(row.hostname);
+            $("#modelId1_form_id").val(row.id);
+            $("#modelId1_form_description").val(row.description);
+            $("#modelId1_form_ip").val(row.ip);
+            $("#modelId1_form_enabled").val(row.enabled);
+            $("#modelId1_form_time_out").val(row.time_out);
+            $("#modelId1_form_time_interval").val(row.time_interval);
+            $("#modelId1_form_ping_count").val(row.ping_count);
+            $("#modelId1_form_avg_rtt").val(row.avg_rtt);
+            $("#modelId1_form_packet_loss").val(row.packet_loss);
+            $('#modelId1').modal('show');
+        },
+        'click .trash': function (e, value, row, index) {
+            $("#modelId2_input_hostname").val(row.hostname);
+            $('#modelId2').modal('show');
+        }
+    }
+
+    $(function () {
+        $("#modelId1_submit").click(function (e) {
+            e.preventDefault();
+            $.post("{{url_for('topology.ping_client_info_edit')}}", $("#modelId1_form").serializeArray(),
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        $("#pingclieng_table").bootstrapTable('refresh');
+                        $('#modelId1').modal('hide');
+                    }
+                },
+                "json"
+            );
+        });
+
+        $("#modelId2_del_submit").click(function (e) {
+            e.preventDefault();
+            let hostname = $("#modelId2_input_hostname").val();
+            $.get("{{url_for('topology.ping_client_remove')}}", {
+                hostname: hostname
+            },
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        $("#modelId2").modal('hide');
+                        $("#pingclieng_table").bootstrapTable('refresh');
+                    }
+                },
+                "json"
+            );
+        });
+
+        $("#exchange_form_submit").click(function (e) {
+            e.preventDefault();
+            $.post("{{url_for('topology.exchange_client_config')}}", $("#exchange_form").serializeArray(),
+                function (data, textStatus, jqXHR) {
+                    api_result(data);
+                },
+                "json"
+            );
+        });
+    });
+</script>
+{% endblock %}

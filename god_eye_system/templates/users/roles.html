@@ -1,0 +1,115 @@
+
+{% extends "layout.html" %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <button type="button" class="btn btn-primary" id="delete_roles_selection">删除选中</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <table id="roles_table" data-toggle="table" data-locale="zh-CN" data-click-to-select="true"
+                data-url="{{url_for('api.users_roles')}}" data-height="400" data-side-pagination="server"
+                data-search="true"
+                data-pagination="true">
+                <thead>
+                    <tr>
+                        <th data-field="state" data-checkbox="true"></th>
+                        <th data-field="id">ID</th>
+                        <th data-field="name">权限名称</th>
+                        <th data-field="value">权限内容</th>
+                        <th data-field="user_id">用户编号</th>
+                        <th data-field="user_name">用户姓名</th>
+                        <th data-field="operate" data-click-to-select="false" data-formatter="operateFormatter"
+                            data-events="operateEvents">操作</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId1" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <h5 id="alert_info_1"></h5>
+                <div class="d-none" id="delete_role_id"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button id="confirm_delete_role" type="button" class="btn btn-primary">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    var $table = $('#roles_table')
+    var csrf_token = "{{csrf_token()}}"
+    function operateFormatter(value, row, index) {
+        return [
+            '<a class="edit d-none" href="javascript:void(0)" title="编辑">',
+            '<i class="fa fa-pencil-square-o"></i>',
+            '</a>  ',
+            '<a class="remove" href="javascript:void(0)" title="Remove">',
+            '<i class="fa fa-trash"></i>',
+            '</a>'
+        ].join('')
+    }
+
+    window.operateEvents = {
+        'click .edit': function (e, value, row, index) {
+            alert("功能开发中，敬请期待！");
+        },
+        'click .remove': function (e, value, row, index) {
+            $("#alert_info_1").text("确认要删除[" + row.name + "]权限吗？")
+            $("#delete_role_id").text(row.id);
+            $("#modelId1").modal('show');
+        }
+    }
+
+    $(function () {
+        $("#nav_li_system").addClass("active");
+        $("#delete_roles_selection").click(function (e) {
+            let rows = $table.bootstrapTable('getSelections');
+            let data = rows.map(function (v, i, a) {
+                return v.id
+            });
+            $.post("{{url_for('api.users_roles')}}", {
+                csrf_token: csrf_token,
+                operate: 2,
+                data: data
+            }, function (data) {
+                if (api_result(data)) {
+                    $table.bootstrapTable('refresh');
+                }
+            }, 'json');
+        });
+
+        $("#confirm_delete_role").click(function (e) {
+            let id = $("#delete_role_id").text();
+            $.post("{{url_for('api.users_roles')}}", {
+                csrf_token: csrf_token,
+                operate: 0,
+                id: id,
+            }, function (data) {
+                if (api_result(data)) {
+                    $("#modelId1").modal('hide');
+                    $table.bootstrapTable('refresh');
+                }
+            }, 'json');
+        });
+    });
+</script>
+{% endblock %}

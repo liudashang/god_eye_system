@@ -1,0 +1,285 @@
+{% extends "layout.html" %}
+{% block css %}
+<style>
+    table {
+        font-size: 12px;
+    }
+
+    div.seperate-line {
+        background-color: rgb(182, 219, 219);
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a
+                href="{{url_for('topology.topology_config_nav',topology_name=topology_name)}}">{{topology_name}}设置</a>
+        </li>
+        <li class="breadcrumb-item"><a
+                href="{{url_for('topology.ping_config_nav',topology_name=topology_name)}}">{{topology_name}}网络丢包延迟检测设置</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">Ping目标主机管理</li>
+    </ol>
+</nav>
+<div class="container">
+    <div class="seperate-line">
+        <h5>第一步：选择需要Ping的节点</h5>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <table id="nodes_table" data-toggle="table" data-locale="zh-CN" data-click-to-select="true"
+                data-url="{{url_for('topology.node_list')}}?search={{topology_name | replace('#','%23')}}"
+                data-server-sort="false" data-search="true" data-height="500" data-pagination="true">
+                <thead>
+                    <tr>
+                        <th data-field="state" data-checkbox="true"></th>
+                        <th data-field="id" data-sortable="true">ID</th>
+                        <th data-field="name" data-sortable="true">节点名称</th>
+                        <th data-field="ip" data-sortable="true">节点IP</th>
+                        <th data-field="node_type" data-formatter="nodeTypeFormatter" data-sortable="true">节点类型</th>
+                        <th data-field="group_name" data-sortable="true">分组</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+    <div class="seperate-line">
+        <h5>第二步：选择ping客户端</h5>
+    </div>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="input-group">
+                <input type="hidden" name="csrf_token" id="csrf_token" value="{{ csrf_token() }}" />
+                <input type="text" class="form-control" name="slave" id="add_slave" placeholder="请选择Ping客户端"
+                    aria-label="">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="button" aria-label="" id="add_smokeping_targets">提交</button>
+                    <button class="btn btn-light" type="button" aria-label="" id="select_client_ping_modal"
+                        data-toggle="modal" data-target="#modelId2">选择客户端</button>
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="seperate-line mt-3">
+        <h5>第三步：检查ping与线路的关联信息</h5>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <table id="targets_table" data-toggle="table" data-locale="zh-CN" data-click-to-select="true"
+                data-url="{{url_for('topology.target_list')}}?search={{topology_name | replace('#','%23')}}"
+                data-server-sort="false" data-height="500" data-side-pagination="server" data-pagination="true">
+                <thead>
+                    <tr>
+                        <th data-field="state" data-checkbox="true"></th>
+                        <th data-field="host" data-sortable="true">节点IP</th>
+                        <th data-field="link_id" data-formatter="linkNameFormatter" data-sortable="true">关联线路</th>
+                        <th data-field="slave">Ping客户端</th>
+                        <th data-field="operate" data-formatter="operateFormatter" data-events="operateEvents"
+                            data-click-to-select="false">操作</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId1" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">修改关联链路</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="">线路：</label>
+                    <input type="hidden" name="csrf_token" id="modelId1_csrf_token" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="target_id" id="modelId1_target_id" />
+                    <select class="form-control" name="link_id" id="modelId1_edit_link_id">
+                        {% for l in links %}
+                        <option value="{{l.id}}">{{l.get_link_name()}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="">host</label>
+                    <input type="text" class="form-control" name="host" id="modelId1_host">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="modelId1_submit">提交</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId2" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">选择Ping客户端</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table id="modelId2_table" data-toggle="table" data-locale="zh-CN" data-click-to-select="true"
+                    data-url="{{url_for('topology.ping_client_list')}}" data-height="400"
+                    data-side-pagination="server" data-pagination="true">
+                    <thead>
+                        <tr>
+                            <th data-field="state" data-checkbox="true"></th>
+                            <th data-field="hostname">主机名称</th>
+                            <th data-field="description">描述</th>
+                            <th data-field="ip">IP地址</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="modelId2_submit">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId4" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确定删除？</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="modelId4_remove_id">
+                确定要删除该Ping 主机设置吗？
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="modelId4_del_submit">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    const topology_name = "{{topology_name}}";
+
+    function nodeTypeFormatter(value, row) {
+        return row.node_type_cn_name;
+    }
+
+    function linkNameFormatter(value, row) {
+        return row.link_name;
+    }
+
+    function operateFormatter(value, row, index) {
+        return [
+            '<a class="edit" href="javascript:void(0)" title="修改关联链路">',
+            '<i class="fa fa-pencil-square-o"></i>',
+            '</a>  ',
+            '<a class="trash" href="javascript:void(0)" title="删除">',
+            '<i class="fa fa-trash"></i>',
+            '</a>  '
+        ].join('')
+    }
+
+    window.operateEvents = {
+        'click .edit': function (e, value, row, index) {
+            $("#modelId1_edit_link_id").val(row.link_id);
+            $("#modelId1_target_id").val(row.id);
+            $("#modelId1_host").val(row.host);
+            $('#modelId1').modal('show');
+        },
+        'click .trash': function (e, value, row, index) {
+            $("#modelId4_remove_id").val(row.id);
+            $('#modelId4').modal('show');
+        }
+    }
+
+    $(function () {
+        $("#add_smokeping_targets").click(function (e) {
+            e.preventDefault();
+            var data = $("#nodes_table").bootstrapTable('getSelections');
+            var csrf_token = $("#csrf_token").val();
+            var slave = $("#add_slave").val();
+            if (slave == "") {
+                toastr.warning("Ping客户端不能为空！");
+                return false;
+            }
+
+            $.post("{{url_for('topology.smokeping_edit_targets')}}", {
+                data: JSON.stringify(data),
+                csrf_token: csrf_token,
+                slave: slave,
+                topology_name: topology_name
+            },
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        $("#targets_table").bootstrapTable('refresh');
+                    }
+                },
+                "json"
+            );
+        });
+
+        $("#modelId1_submit").click(function (e) {
+            e.preventDefault();
+            $.post("{{url_for('topology.smokeping_edit_targets')}}", {
+                csrf_token: $("#modelId1_csrf_token").val(),
+                target_id: $("#modelId1_target_id").val(),
+                link_id: $("#modelId1_edit_link_id").val(),
+                host: $("#modelId1_host").val(),
+                operate: 1
+            },
+                function (data, textStatus, jqXHR) {
+                    api_result(data);
+                },
+                "json"
+            );
+        });
+
+        $("#modelId2_submit").click(function (e) {
+            e.preventDefault();
+            let rows = $("#modelId2_table").bootstrapTable('getSelections');
+            $("#add_slave").val(rows[0].hostname);
+            $("#modelId2").modal('hide');
+        });
+
+        $("#view_topology_show").click(function (e) {
+            e.preventDefault();
+            location.href = "{{url_for('topology.topology_show')}}?topology_name=" + encodeURIComponent(topology_name);
+        });
+
+        $("#modelId4_del_submit").click(function (e) {
+            e.preventDefault();
+            let id = $("#modelId4_remove_id").val();
+            $.get("{{url_for('topology.target_ping_del')}}", {
+                id: id
+            },
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        $("#targets_table").bootstrapTable('refresh');
+                        $("#modelId4").modal('hide');
+                    }
+                },
+                "json"
+            );
+        });
+    });
+</script>
+{% endblock %}

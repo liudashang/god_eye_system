@@ -1,0 +1,175 @@
+{% extends "layout.html" %}
+{% block css %}
+<style>
+    table {
+        font-size: 12px;
+    }
+
+    div.seperate-line {
+        background-color: rgb(182, 219, 219);
+        text-align: center;
+    }
+
+    .g-dark-anchor {
+        height: 60px;
+        margin-top: -60px;
+    }
+
+    div.seperate-line {
+        background-color: rgb(182, 219, 219);
+        text-align: center;
+    }
+
+    body {
+        background-color: #e6e6e6;
+    }
+
+    .g-topology-show {
+        height: 240px;
+    }
+
+    .g-card-button {
+        -webkit-transition-duration: 0.4s;
+        /* Safari */
+        transition-duration: 0.4s;
+        cursor: pointer;
+    }
+
+    .g-card-button:hover {
+        background-color: #f3f3f3;
+    }
+
+    .g-row-basis {
+        background-color: #f3f3f3;
+    }
+
+    .g-row-link {
+        background-color: #f3f3f3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if topology_name != "" %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a
+                href="{{url_for('topology.topology_config_nav',topology_name=topology_name)}}">{{topology_name}}设置</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">仪表盘设置</li>
+    </ol>
+</nav>
+{% endif %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">{{topology_name}}仪表盘设置</h1>
+        <img src="{{ static_url_for('static', filename='img/仪表盘功能展示.gif') }}" style="width: 600px;height: 300px;"
+            alt="">
+        <p class="lead">
+            仪表盘，可以将其他网站（如Grafana）的图表，嵌入到拓扑图中。
+        </p>
+        {% if topology_name != '' %}
+        <button type="button" class="btn btn-primary" id="view_topology_show"><i class="fa fa-share"
+                aria-hidden="true"></i>查看拓扑图</button>
+        <button type="button" class="btn btn-primary" id="view_topology_config"><i class="fa fa-share"
+                aria-hidden="true"></i>返回设置</button>
+        {% endif %}
+    </div>
+</div>
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">设置</h4>
+                    <form id="form_new">
+                        <div class="form-group">
+                            <label for="">Iframe名称</label>
+                            <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                            <input type="hidden" name="topology_name" value="{{topology_name}}">
+                            <input type="text" class="form-control" name="name">
+                        </div>
+                        <div class="form-group">
+                            <label for="">url</label>
+                            <input type="text" class="form-control" name="url">
+                        </div>
+                        <button type="button" class="btn btn-primary" id="form_new_submit">新增</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">明细</h4>
+                    <button type="button" class="btn btn-danger mb-1" id="table_delete_selection">删除选中</button>
+                    <table id="iframe_table" data-toggle="table" data-locale="zh-CN" data-click-to-select="true"
+                        data-url="{{url_for('topology.iframe_embed_url_manage',operate=1,topology_name=topology_name)}}"
+                        data-height="400" data-pagination="true">
+                        <thead>
+                            <tr>
+                                <th data-field="state" data-checkbox="true"></th>
+                                <th data-field="id">ID</th>
+                                <th data-field="name">Iframe名称</th>
+                                <th data-field="url">url</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    const topology_name = "{{topology_name}}";
+    const from_where = "{{from_where}}";
+    $(function () {
+        $("#form_new_submit").click(function (e) {
+            e.preventDefault();
+            $.post("{{url_for('topology.iframe_embed_url_manage')}}", $("#form_new").serializeArray(),
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        $("#iframe_table").bootstrapTable('refresh');
+                    }
+                },
+                "json"
+            );
+        });
+
+        $("#table_delete_selection").click(function (e) {
+            e.preventDefault();
+            let rows = $("#iframe_table").bootstrapTable('getSelections');
+            let ids = [];
+            rows.forEach(element => {
+                ids.push(element.id);
+            });
+
+            $.get("{{url_for('topology.iframe_embed_url_manage')}}", {
+                operate: 2,
+                ids: ids
+            },
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        $("#iframe_table").bootstrapTable('refresh');
+                    }
+                },
+                "json"
+            );
+        });
+
+        $("#view_topology_show").click(function (e) {
+            e.preventDefault();
+            location.href = "{{url_for('topology.topology_show')}}?topology_name=" + encodeURIComponent(topology_name);
+        });
+        $("#view_topology_config").click(function (e) {
+            e.preventDefault();
+            location.href = "{{url_for('topology.topology_config_nav',topology_name=topology_name)}}";
+        });
+    });
+</script>
+{% endblock %}

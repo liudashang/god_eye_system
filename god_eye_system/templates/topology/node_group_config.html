@@ -1,0 +1,345 @@
+{% extends "layout.html" %}
+{% block css %}
+<link rel="stylesheet" type="text/css" href="{{ static_url_for('static', filename='css/colpick.css') }}" />
+<style>
+    table {
+        font-size: 12px;
+    }
+
+    div.seperate-line {
+        background-color: rgb(182, 219, 219);
+        text-align: center;
+    }
+
+    .g-dark-anchor {
+        height: 60px;
+        margin-top: -60px;
+    }
+
+    div.seperate-line {
+        background-color: rgb(182, 219, 219);
+        text-align: center;
+    }
+
+    body {
+        background-color: #e6e6e6;
+    }
+
+    .g-topology-show {
+        height: 240px;
+    }
+
+    .g-card-button {
+        -webkit-transition-duration: 0.4s;
+        /* Safari */
+        transition-duration: 0.4s;
+        cursor: pointer;
+    }
+
+    .g-card-button:hover {
+        background-color: #f3f3f3;
+    }
+
+    .g-row-basis {
+        background-color: #f3f3f3;
+    }
+
+    .g-row-link {
+        background-color: #f3f3f3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if topology_name != "" %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a
+                href="{{url_for('topology.topology_config_nav',topology_name=topology_name)}}">{{topology_name}}设置</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">分组设置</li>
+    </ol>
+</nav>
+{% endif %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">{{topology_name}}分组设置</h1>
+        <p class="lead">
+            可以按区域，如机房、生产线等将设备加入一个分组中，并设置唯一的颜色。<br>
+            拓扑图，会将这些设备放在对应颜色的方框中。
+        </p>
+        {% if topology_name != '' %}
+        <button type="button" class="btn btn-primary" id="view_topology_show"><i class="fa fa-share"
+                aria-hidden="true"></i>查看拓扑图</button>
+        <button type="button" class="btn btn-primary" id="view_topology_config"><i class="fa fa-share"
+                aria-hidden="true"></i>返回设置</button>
+        {% endif %}
+    </div>
+</div>
+<div class="container">
+    <div class="seperate-line">
+        <h5>分组设置</h5>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="">分组：</label>
+                        <select class="form-control" name="group_name" id="select_a_group_name">
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="input-group mt-2">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="inputGroup-sizing-default">分组名称</span>
+                        </div>
+                        <input type="hidden" name="csrf_token" id="csrf_token" value="{{ csrf_token() }}" />
+                        <input type="text" class="form-control" name="group_name" id="new_group_name">
+                    </div>
+                    <div class="input-group mt-2 mb-2">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" id="inputGroup-sizing-default">分组背景颜色</span>
+                        </div>
+                        <input type="text" class="form-control" name="group_color" id="new_group_color">
+                        <div class="input-group-append" id="button-addon4">
+                            <button class="btn btn-outline-secondary" type="button" id="colorpicker">选择颜色</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="edit_group_color">修改颜色</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="seperate-line mt-3">
+        <h5>节点增删</h5>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <div class="form-group">
+                                <label for="">未分组的节点</label>
+                                <select multiple class="form-control" name="no_group_nodes" id="no_group_nodes">
+                                    {% for ngl in no_group_list %}
+                                    <option value="{{ngl.id}}">{{ngl.name}}({{ngl.ip}})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="col-md-4 offset-md-4">
+                                <div class="my-3">
+                                    <button type="button" class="btn btn-primary" id="add_node"><i
+                                            class="fa fa-angle-double-right" aria-hidden="true"></i></button>
+                                </div>
+                                <div class="my-3">
+                                    <button type="button" class="btn btn-primary" id="remove_node"><i
+                                            class="fa fa-angle-double-left" aria-hidden="true"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="form-group">
+                                <label for="">分组成员</label>
+                                <select multiple class="form-control" name="group_members" id="group_members"></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="{{ static_url_for('static', filename='js/colpick.js') }}"></script>
+<script>
+    const topology_name = "{{topology_name}}";
+    const from_where = "{{from_where}}";
+
+    //guding_group下面两个数组的顺序必须对应！
+    const guding_group = ['MES系统', '数据中心', '骨干网络'];
+    const guding_group_color = [{ name: 'MES系统', color: "#ebce91" }, { name: '数据中心', color: "#9ad2f5" }, { name: '骨干网络', color: '#e199f0' }];
+
+    function change_color_input(value) {
+        $("#new_group_color").val(value);
+        $("#new_group_color").css("background-color", value)
+    }
+
+    function refresh_members_select(group_name) {
+        $.get("{{url_for('topology.node_group_config_get')}}", {
+            get_type: "group_members",
+            topology_name: topology_name,
+            group_name: group_name
+        },
+            function (data, textStatus, jqXHR) {
+                $("#group_members").empty();
+                if (data.data.length == 0) {
+                    let index = guding_group.indexOf(group_name);
+                    if (index != -1) {
+                        change_color_input(guding_group_color[index].color);
+
+                    }
+                }
+                data.data.forEach(el => {
+                    $("#group_members").append(`<option value="${el.id}">${el.name}(${el.ip})</option>`);
+                    let index = guding_group.indexOf(el.name)
+                    if (index != -1) {
+                        change_color_input(guding_group_color[index].color);
+
+                    } else {
+
+                        change_color_input(el.color);
+                    }
+                });
+            },
+            "json"
+        );
+    }
+
+    function refresh_group_name_select() {
+        $.get("{{url_for('topology.node_group_config_get')}}", {
+            get_type: "group_list",
+            topology_name: topology_name
+        },
+            function (data, textStatus, jqXHR) {
+                $("#select_a_group_name").empty();
+                $("#select_a_group_name").append('<option value="">创建新的分组</option>');
+                guding_group.forEach(el => {
+                    $("#select_a_group_name").append(`<option>${el}</option>`);
+                })
+                data.data.forEach(el => {
+                    if (guding_group.indexOf(el) >= 0) {
+                        return false;
+                    }
+                    $("#select_a_group_name").append(`<option>${el}</option>`);
+                });
+
+                $("#select_a_group_name").val($("#new_group_name").val());
+
+            },
+            "json"
+        );
+    }
+
+    function refresh_no_group_select() {
+        $.get("{{url_for('topology.node_group_config_get')}}", {
+            get_type: "no_group_nodes",
+            topology_name: topology_name
+        },
+            function (data, textStatus, jqXHR) {
+                $("#no_group_nodes").empty();
+                data.data.forEach(el => {
+                    $("#no_group_nodes").append(`<option value="${el.id}">${el.name}(${el.ip})</option>`);
+                });
+            },
+            "json"
+        );
+    }
+
+    $(function () {
+        refresh_group_name_select();
+        $('#colorpicker').colpick({
+            onSubmit: function (hsb, hex, rgb, el, bySetColor) {
+                change_color_input('#' + hex);
+            }
+        });
+        $("#select_a_group_name").change(function (e) {
+            e.preventDefault();
+            var group_name = $("#select_a_group_name").val();
+            if (group_name != "") {
+                refresh_members_select(group_name);
+                $("#new_group_name").val(group_name);
+            } else {
+                $("#new_group_name").val("");
+                change_color_input("");
+                refresh_no_group_select();
+                $("#group_members").empty();
+            }
+        });
+
+        $("#group_members").change(function (e) {
+            e.preventDefault();
+            console.log($("#group_members").val());
+        });
+
+        $("#edit_nodes_group_submit").click(function (e) {
+            e.preventDefault();
+            $.post("{{ url_for('topology.edit_nodes_group') }}", {
+                csrf_token: $("#edit_nodes_group_csrf_token").val(),
+                group_name: $("#edit_nodes_group_name").val(),
+                group_color: $("#edit_nodes_group_color").val(),
+                node_list: JSON.stringify(node_list)
+            }, function (data) {
+                api_result(data);
+            });
+        });
+
+        $("#remove_node").click(function (e) {
+            e.preventDefault();
+            var node_list = $("#group_members").val();
+            $.post("{{ url_for('topology.edit_nodes_group') }}", {
+                csrf_token: $("#csrf_token").val(),
+                group_name: "",
+                group_color: "",
+                node_list: JSON.stringify(node_list)
+            }, function (data) {
+                api_result(data);
+                refresh_members_select($("#new_group_name").val());
+                refresh_group_name_select();
+                refresh_no_group_select();
+            });
+        });
+
+        $("#add_node").click(function (e) {
+            e.preventDefault();
+            var node_list = $("#no_group_nodes").val();
+            $.post("{{ url_for('topology.edit_nodes_group') }}", {
+                csrf_token: $("#csrf_token").val(),
+                group_name: $("#new_group_name").val(),
+                group_color: $("#new_group_color").val(),
+                node_list: JSON.stringify(node_list)
+            }, function (data) {
+                api_result(data);
+                refresh_members_select($("#new_group_name").val());
+                refresh_group_name_select();
+                refresh_no_group_select();
+            });
+        });
+
+        $("#edit_group_color").click(function (e) {
+            e.preventDefault();
+            $.post("{{ url_for('topology.edit_nodes_group') }}", {
+                csrf_token: $("#csrf_token").val(),
+                group_name: $("#new_group_name").val(),
+                group_color: $("#new_group_color").val(),
+                topology_name: topology_name,
+                node_list: "all"
+            }, function (data) {
+                api_result(data);
+                refresh_members_select($("#new_group_name").val());
+                refresh_group_name_select();
+                refresh_no_group_select();
+            });
+        });
+
+        $("#view_topology_show").click(function (e) {
+            e.preventDefault();
+            location.href = "{{url_for('topology.topology_show')}}?topology_name=" + encodeURIComponent(topology_name);
+        });
+        $("#view_topology_config").click(function (e) {
+            e.preventDefault();
+            location.href = "{{url_for('topology.topology_config_nav',topology_name=topology_name)}}";
+        });
+    });
+</script>
+{% endblock %}

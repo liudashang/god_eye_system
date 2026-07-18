@@ -1,0 +1,387 @@
+{% extends "layout.html" %}
+
+{% block css %}
+<link rel="stylesheet" type="text/css" href="{{ static_url_for('static', filename='css/bootstrap-select.min.css') }}" />
+<style>
+    .g-dark-anchor {
+        height: 60px;
+        margin-top: -60px;
+    }
+
+    table {
+        font-size: 12px;
+    }
+
+    div.seperate-line {
+        background-color: rgb(182, 219, 219);
+        text-align: center;
+    }
+
+    body {
+        background-color: #e6e6e6;
+    }
+
+    .g-topology-show {
+        height: 240px;
+    }
+
+    .g-card-button {
+        -webkit-transition-duration: 0.4s;
+        /* Safari */
+        transition-duration: 0.4s;
+        cursor: pointer;
+    }
+
+    .g-card-button:hover {
+        background-color: #f3f3f3;
+    }
+
+    .g-row-basis {
+        background-color: #f3f3f3;
+    }
+
+    .g-row-link {
+        background-color: #f3f3f3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if from_where == "ping" %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a
+                href="{{url_for('topology.topology_config_nav',topology_name=topology_name)}}">{{topology_name}}设置</a>
+        </li>
+        <li class="breadcrumb-item"><a
+                href="{{url_for('topology.ping_config_nav',topology_name=topology_name)}}">{{topology_name}}网络丢包延迟检测设置</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">Ping检测数据展示</li>
+    </ol>
+</nav>
+{% else %}
+{% if topology_name != None %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a
+                href="{{url_for('topology.topology_config_nav',topology_name=topology_name)}}">{{topology_name}}设置</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">线路连线管理</li>
+    </ol>
+</nav>
+{% endif %}
+{% endif %}
+<div class="container-fluid">
+    {% if from_where == "config" %}
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">新增连线</h4>
+                    <form id="add_new_link_form">
+                        <div class="form-group">
+                            <label for="add_new_link_topology_name">拓扑结构名称</label>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <input type="text" class="form-control" name="topology_name" id="add_new_link_topology_name"
+                                value="{{topology_name}}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="add_new_link_source">起始节点</label>
+                            <select class="form-control" name="source" id="add_new_link_source">
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="add_new_link_target">目的节点</label>
+                            <select class="form-control" name="target" id="add_new_link_target">
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" id="add_new_link_form_submit">增加</button>
+                        <button type="button" class="btn btn-primary btn-sm"
+                            id="copy_ping_from_other_project">复制Ping监控项</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    <div class="g-dark-anchor" id="anchor_link_table" name="anchor_link_table"></div>
+    <div class="row mt-2">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">连线明细</h4>
+                    {% if from_where=="ping" %}
+                    <button type="button" class="btn btn-primary btn-sm"
+                        id="copy_ping_from_other_project">复制Ping监控项</button>
+                    {% else %}
+                    <button type="button" class="btn btn-danger btn-sm" id="add_new_link_form_delete">删除选中</button>
+                    {% endif %}
+                    <table id="links_table" data-height="500"
+                        data-url="{{url_for('topology.link_list',topology_name=topology_name)}}" data-toggle="table"
+                        data-locale="zh-CN" data-click-to-select="true" data-server-sort="false" data-search="true"
+                        data-pagination="true">
+                        <thead>
+                            <tr>
+                                <th data-field="state" data-checkbox="true"></th>
+                                <th data-field="id" data-sortable="true">ID</th>
+                                <th data-field="source" data-formatter="sourceFormatter" data-sortable="true">
+                                    起始节点</th>
+                                <th data-field="target" data-formatter="targetFormatter" data-sortable="true">
+                                    目的节点</th>
+                                <th data-field="source_port">起始端口</th>
+                                <th data-field="target_port">目的端口</th>
+                                <th data-field="smokeping_path" data-sortable="true">smokeping关联节点</th>
+                                <th data-field="need_alert" data-formatter="needAlertFormatter" data-sortable="true">告警
+                                </th>
+                                <th data-field="operate" data-formatter="operateFormatter" data-click-to-select="false"
+                                    data-events="operateEvents">操作</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId5" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">关联smokeping节点</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="edit_smokeping_form">
+                    <div class="form-group">
+                        <label for="">smokeping节点路径</label>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <input type="hidden" name="id" id="edit_smokeping_form_id" />
+                        <!--<input type="text" class="form-control" name="smokeping_path"
+                            id="edit_smokeping_form_smokeping_path">-->
+                        <select class="form-control selectpicker" name="smokeping_path" data-live-search="true"
+                            id="edit_smokeping_form_smokeping_path"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="">起始端口</label>
+                        <input type="text" class="form-control" name="source_port" id="edit_smokeping_form_source_port">
+                    </div>
+                    <div class="form-group">
+                        <label for="">目的端口</label>
+                        <input type="text" class="form-control" name="target_port" id="edit_smokeping_form_target_port">
+                    </div>
+                    <div class="form-group">
+                        <label for="">是否告警</label>
+                        <select class="form-control" name="need_alert" id="edit_smokeping_form_need_alert">
+                            <option value=0>否</option>
+                            <option value=1>是</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="">自定义告警主机名称</label>
+                        <input type="text" class="form-control" name="alert_custom_name"
+                            id="edit_smokeping_form_alert_custom_name">
+                    </div>
+                    <div class="form-group">
+                        <label for="">告警间隔（分钟）</label>
+                        <input type="text" class="form-control" name="alert_inerval"
+                            id="edit_smokeping_form_alert_inerval">
+                    </div>
+                    <div class="form-group">
+                        <label for="">延迟阈值</label>
+                        <input type="text" class="form-control" name="avg_rtt" id="edit_smokeping_form_avg_rtt"
+                            aria-describedby="avgrttHelp">
+                        <small id="avgrttHelp" class="form-text text-muted">产生告警的最小延迟,单位ms毫秒</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="edit_smokeping_form_submit">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId8" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">从其他拓扑图迁移Ping监控项</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div class="form-group">
+                        <label for="">源项目：</label>
+                        <select class="form-control" id="modelId8_topology_name">
+                            <option value="">未选择</option>
+                            {% for t in tpnl %}
+                            <option value="{{t}}">{{t}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="modelId8_submit">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block js %}
+<script src="{{ static_url_for('static', filename='js/xlsx.full.min.js') }}"></script>
+<script src="{{ static_url_for('static', filename='js/bootstrap-select.min.js') }}"></script>
+<script>
+    var topology_name = "{{topology_name}}";
+
+    function init_smokeping_list(obj) {
+        $(obj).empty();
+        $.get("/topology/ping_target_list", { topology_name: topology_name }, function (data) {
+            $(obj).append(`<option value="">无</option>`);
+            data.forEach(el => {
+                $(obj).append(`<option value="${el.path}">${el.host}</option>`);
+            });
+            $(obj).selectpicker('refresh');
+        });
+    }
+
+    function init_link_selection() {
+        $.get("{{ url_for('topology.get_nodes_for_link') }}", {
+            topology_name: topology_name,
+        }, function (data) {
+            $("#add_new_link_source").empty();
+            $("#add_new_link_target").empty();
+            data.data.forEach(element => {
+                $("#add_new_link_source").append(`<option value="${element.id}">${element.name}</option>`);
+            });
+            data.data.forEach(element => {
+                $("#add_new_link_target").append(`<option value="${element.id}">${element.name}</option>`);
+            });
+        });
+    }
+
+    function sourceFormatter(value, row) {
+        return row.source_name;
+    }
+
+    function needAlertFormatter(value, row) {
+        if (value == 0) {
+            return "否";
+        } else {
+            return "是";
+        }
+    }
+
+    function targetFormatter(value, row) {
+        return row.target_name;
+    }
+
+    function operateFormatter(value, row, index) {
+        return [
+            '<a class="smokeping" href="javascript:void(0)" title="关联smokeping节点">',
+            '<i class="fa fa-cog"></i>', ,
+            '</a>  '
+        ].join('')
+    }
+
+    window.operateEvents = {
+        'click .smokeping': function (e, value, row, index) {
+            $("#edit_smokeping_form_id").val(row.id);
+            $("#edit_smokeping_form_smokeping_path").val(row.smokeping_path);
+            $("#edit_smokeping_form_smokeping_path").selectpicker('refresh');
+            $("#edit_smokeping_form_source_port").val(row.source_port);
+            $("#edit_smokeping_form_target_port").val(row.target_port);
+            $("#edit_smokeping_form_need_alert").val(row.need_alert);
+            $("#edit_smokeping_form_alert_inerval").val(row.alert_inerval);
+            $("#edit_smokeping_form_alert_custom_name").val(row.alert_custom_name);
+            $("#edit_smokeping_form_avg_rtt").val(row.avg_rtt);
+            $("#modelId5").modal('show');
+        }
+    }
+
+    $(function () {
+        $("#nav_li_topology").addClass("active");
+        init_link_selection();
+        init_smokeping_list("#edit_smokeping_form_smokeping_path");
+
+        $("#add_new_link_form_submit").click(function (e) {
+            e.preventDefault();
+            $.post("{{url_for('topology.link_list')}}", $("#add_new_link_form").serializeArray(), function (data) {
+                if (data.error == 1) {
+                    toastr.warning(data.info);
+                } else {
+                    toastr.success(data.info);
+                    $("#links_table").bootstrapTable('refresh');
+                }
+            });
+        });
+
+        $("#add_new_link_form_delete").click(function (e) {
+            e.preventDefault();
+            let rows = $("#links_table").bootstrapTable('getSelections');
+            if (rows.length == 0) {
+                return;
+            }
+            rows.forEach(el => {
+                $.get("{{ url_for('topology.edit_link_info') }}", {
+                    id: el.id
+                }, data => {
+                    if (data.error == 1) {
+                        toastr.warning(data.info);
+                    } else {
+                        toastr.success(data.info);
+                        $("#links_table").bootstrapTable('refresh');
+                    }
+                });
+            });
+        });
+
+        $("#copy_ping_from_other_project").click(function (e) {
+            e.preventDefault();
+            $("#modelId8").modal('show');
+        });
+
+        $("#modelId8_submit").click(function (e) {
+            e.preventDefault();
+            $.get("{{url_for('topology.copy_ping_from_other_project')}}", {
+                source_topology: $("#modelId8_topology_name").val(),
+                target_topology: topology_name
+            },
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        $("#links_table").bootstrapTable('refresh');
+                        $("#modelId8").modal('hide');
+                    }
+                },
+                "json"
+            );
+        });
+
+        $("#edit_smokeping_form_submit").click(function (e) {
+            e.preventDefault();
+            let avg_rtt = $("#edit_smokeping_form_avg_rtt").val();
+            if (avg_rtt != undefined && avg_rtt != '' && avg_rtt.indexOf('ms') == -1) {
+                toastr.warning("延迟阈值必须带有单位毫秒（ms）");
+                return;
+            }
+            $.post("{{ url_for('topology.edit_link_smokeping_path') }}", $("#edit_smokeping_form").serializeArray(), function (data) {
+                if (api_result(data)) {
+                    $("#links_table").bootstrapTable('refresh');
+                    $("#modelId5").modal('hide');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

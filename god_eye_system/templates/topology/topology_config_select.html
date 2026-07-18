@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+{% block css %}
+<style>
+    table {
+        font-size: 12px;
+    }
+
+    body {
+        background-color: #e6e6e6;
+    }
+
+    .g-topology-show {
+        height: 500px;
+    }
+
+    .g-card-button {
+        -webkit-transition-duration: 0.4s;
+        /* Safari */
+        transition-duration: 0.4s;
+        cursor: pointer;
+    }
+
+    .g-card-button:hover {
+        background-color: #f3f3f3;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">设置功能</h1>
+        <p class="lead">
+            你可以通过此处，创建或完善您的拓扑图。
+        </p>
+    </div>
+</div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">请选择</h4>
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="card g-card-button shadow-sm" style="height: 160px;"
+                                    id="new_topology_create">
+                                    <div class="card-body">
+                                        <h4 class="card-title"><i class="fa fa-plus" aria-hidden="true" /></i> 创建</h4>
+                                        <p class="card-text">创建一个新的拓扑图</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="card g-card-button shadow-sm" style="height: 160px;"
+                                    onclick="hop_topology_config_nav()">
+                                    <div class="card-body">
+                                        <h4 class="card-title"><i class="fa fa-edit" aria-hidden="true" /></i> 编辑</h4>
+                                        <p class="card-text">对已有的拓扑图进行修改</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId4" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">请选择一个拓扑图</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table id="topology_config_nav_tab" data-url="{{url_for('user.members',operate=1)}}" data-toggle="table"
+                    data-search="true" data-pagination="true">
+                    <thead>
+                        <tr>
+                            <th data-field="name" data-sortable="true">拓扑图名称</th>
+                            <th data-field="bg" data-sortable="true">所属一级部门</th>
+                            <th data-field="bu" data-sortable="true">所属二级部门</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    function hop_topology_config_nav() {
+        $("#modelId4").modal('show');
+    }
+
+    $(function () {
+        $("#nav_li_topology").addClass("active");
+
+        $("#new_topology_create").click(function (e) {
+            e.preventDefault();
+            location.href = "{{url_for('topology.topology_config_nav')}}"
+        });
+
+        $("#topology_config_nav_tab").on('click-row.bs.table', function (e, row, $element, field) {
+            location.href = "{{url_for('topology.topology_config_nav')}}?topology_name=" + encodeURIComponent(row.name);
+        });
+    });
+</script>
+
+{% endblock %}

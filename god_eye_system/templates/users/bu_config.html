@@ -1,0 +1,174 @@
+{% extends "layout.html" %}
+
+{% block content %}
+{% if topology_name != None %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a
+                href="{{url_for('topology.topology_config_nav',topology_name=topology_name)}}">{{topology_name}}设置</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">部门管理</li>
+    </ol>
+</nav>
+{% endif %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <form id="create_bu_form">
+                <div class="form-group">
+                    <label for="">部门类型</label>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    <select class="form-control" name="bu_type" id="create_bu_form_bu_type">
+                        <option value="1">一级部门</option>
+                        <option value="2">二级部门</option>
+                    </select>
+                </div>
+                <div class="form-group d-none myself-need-hide">
+                    <label for="">BG</label>
+                    <select class="form-control" name="bu_parent" id="create_bu_form_bu_parent">
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="">部门名称</label>
+                    <input type="text" class="form-control" name="name" id="create_bu_form_name">
+                </div>
+                <button type="button" class="btn btn-primary" id="create_bu_form_submit">增加</button>
+            </form>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <table id="bus_table" data-toggle="table" data-locale="zh-CN" data-click-to-select="true" data-search="true"
+                data-url="{{url_for('user.bu_list')}}" data-side-pagination="server" data-pagination="true">
+                <thead>
+                    <tr>
+                        <th data-field="state" data-checkbox="true"></th>
+                        <th data-field="name">名称</th>
+                        <th data-field="bu_type" data-formatter="buTypeFormater">类型</th>
+                        <th data-field="bu_parent">所属一级部门</th>
+                        <th data-field="active" data-formatter="activeFormater">状态</th>
+                        <th data-field="operate" data-click-to-select="false" data-formatter="operateFormatter"
+                            data-events="operateEvents">操作</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId1" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">更名</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="bg_rename_form">
+                    <input type="hidden" name="id" id="bg_rename_form_id">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <div class="form-group">
+                        <label for="">旧名称</label>
+                        <input type="text" class="form-control" name="old_name" id="bg_rename_form_old_name" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="">新名称</label>
+                        <input type="text" class="form-control" name="new_name" id="bg_rename_form_new_name">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="bg_rename_form_submit">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    function operateFormatter(value, row, index) {
+        return [
+            '<a class="rename" href="javascript:void(0)" title="更名">',
+            '<i class="fa fa-exchange"></i>',
+            '</a>  ',
+            '<a class="move" href="javascript:void(0)" title="撤销或迁移">',
+            '<i class="fa fa-eraser"></i>',
+            '</a>  ',
+        ].join('')
+    }
+
+    window.operateEvents = {
+        'click .rename': function (e, value, row, index) {
+            $("#bg_rename_form_old_name").val(row.name);
+            $("#bg_rename_form_id").val(row.id);
+            $("#modelId1").modal('show');
+        },
+        'click .move': function (e, value, row, index) {
+            location.href = `{{url_for('user.move_bu_page')}}?id=${row.id}`;
+        }
+    };
+
+    function activeFormater(value) {
+        if (value) {
+            return "已撤销"
+        } else {
+            return "正常"
+        }
+    }
+
+    function buTypeFormater(value) {
+        if (value == 1) {
+            return "BG"
+        } else {
+            return "BU"
+        }
+    }
+
+    $(function () {
+        $("#nav_li_system").addClass("active");
+        $("#create_bu_form_bu_type").change(function (e) {
+            e.preventDefault();
+            if ($("#create_bu_form_bu_type").val() == 2) {
+                $("#create_bu_form_bu_parent").empty();
+                $(".myself-need-hide").removeClass("d-none");
+                $.get("{{url_for('user.bu_list_simple')}}", {},
+                    function (data, textStatus, jqXHR) {
+                        data.forEach(element => {
+                            $("#create_bu_form_bu_parent").append(`<option>${element}</option>`);
+                        });
+                    },
+                    "json"
+                );
+            } else {
+                $("#create_bu_form_bu_parent").empty();
+                $(".myself-need-hide").addClass("d-none");
+
+            }
+        });
+
+        $("#create_bu_form_submit").click(function (e) {
+            e.preventDefault();
+            $.post("{{url_for('user.bu_list')}}", $("#create_bu_form").serializeArray(), function (data) {
+                if (api_result(data)) {
+                    $("#bus_table").bootstrapTable('refresh');
+                }
+            });
+        });
+
+        $("#bg_rename_form_submit").click(function (e) {
+            e.preventDefault();
+            $.post("{{url_for('user.bu_rename')}}", $("#bg_rename_form").serializeArray(),
+                function (data, textStatus, jqXHR) {
+                    api_result(data);
+                },
+                "json"
+            );
+        });
+    });
+</script>
+{% endblock %}

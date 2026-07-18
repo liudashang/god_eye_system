@@ -1,0 +1,499 @@
+{% extends "layout.html" %}
+{% block css %}
+<style>
+    table {
+        font-size: 12px;
+    }
+
+    body {
+        background-color: #e6e6e6;
+    }
+
+    .g-topology-show {
+        height: 500px;
+    }
+
+    .g-card-button {
+        -webkit-transition-duration: 0.4s;
+        /* Safari */
+        transition-duration: 0.4s;
+        cursor: pointer;
+    }
+
+    .g-card-button:hover {
+        background-color: #f3f3f3;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">天眼系统</h1>
+        <p class="lead">拓扑图，协助您了解应用系统的IT结构，快捷展示应用系统的运行指标、告警信息。<br>
+            在图上编辑，<strong>右键</strong>新增设备和线路、快速调整布局。</p>
+    </div>
+</div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-4">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">收藏与最近查看 <a href="#"><i class="fa fa-edit" aria-hidden="true" /></i></a></h4>
+                    <div class="g-topology-show overflow-auto" id="profile">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-8">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">全部拓扑图</h4>
+                    <table id="topology_table" data-height="500" data-toggle="table" data-search="true"
+                        data-pagination="true" data-url="{{url_for('user.members',operate=1)}}" data-sortable="true"
+                        data-buttons-align="left" data-buttons="buttons" data-sort-name="alert_status"
+                        data-sort-order="desc">
+                        <thead>
+                            <tr>
+                                <th data-field="state" data-checkbox="true"></th>
+                                <th data-field="name" data-sortable="true">拓扑图名称</th>
+                                <th data-field="bg" data-sortable="true">所属一级部门</th>
+                                <th data-field="bu" data-sortable="true">所属二级部门</th>
+                                <th data-field="alert_status" data-formatter="alertFormatter" data-sortable="true">告警
+                                </th>
+                                <th data-field="is_tingxian" data-formatter="tingxianFormatter">是否停线
+                                </th>
+                                <th data-field="is_eol" data-formatter="eolFormatter">是否EOL</th>
+                                <th data-field="operate" data-click-to-select="false" data-formatter="operateFormatter"
+                                    data-events="operateEvents">操作</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">功能区</h4>
+                    <div class="row">
+                        <div class="col-3">
+                            <div class="card g-card-button" data-toggle="modal" data-target="#modelId3">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fa fa-plus" aria-hidden="true" /></i> 编辑和新增拓扑图
+                                    </h5>
+                                    <p class="card-text">设备、线路的新增和修改</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="card g-card-button" data-toggle="modal" data-target="#modelId10">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fa fa-area-chart" aria-hidden="true" /></i>
+                                        监控数据配置
+                                    </h5>
+                                    <p class="card-text">显示Zabbix监控数据</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="card g-card-button" onclick="hop_ping_config()">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fa fa-chain" aria-hidden="true" /></i> Ping配置
+                                    </h5>
+                                    <p class="card-text">网络线路延迟、丢包检查</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="card g-card-button" data-toggle="modal" data-target="#modelId5">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fa fa-cogs" aria-hidden="true" /></i> 其他配置</h5>
+                                    <p class="card-text">虚拟机集群、告警建议</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId1" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">更新说明</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                {% include "users/gonggao.html" %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId2" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">收藏设置</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="modelId2_group_name">收藏分组</label>
+                    <input type="text" class="form-control" id="modelId2_group_name" value="默认分组">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="modelId2_add_btn">确定</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId3" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新增和编辑拓扑图</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="card g-card-button" style="height: 160px;" id="new_topology_create">
+                                <div class="card-body">
+                                    <h4 class="card-title"><i class="fa fa-plus" aria-hidden="true" /></i> 创建</h4>
+                                    <p class="card-text">创建一个新的拓扑图</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card g-card-button" style="height: 160px;" onclick="hop_topology_config_nav()">
+                                <div class="card-body">
+                                    <h4 class="card-title"><i class="fa fa-edit" aria-hidden="true" /></i> 编辑</h4>
+                                    <p class="card-text">对已有的拓扑图进行修改</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId4" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">请选择一个拓扑图</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table id="topology_config_nav_tab" data-toggle="table" data-search="true" data-pagination="true">
+                    <thead>
+                        <tr>
+                            <th data-field="name" data-sortable="true">拓扑图名称</th>
+                            <th data-field="bg" data-sortable="true">所属一级部门</th>
+                            <th data-field="bu" data-sortable="true">所属二级部门</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId10" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">请选择监控数据设置方式</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="card g-card-button" style="height: 160px;" onclick="hop_node_metric()">
+                                <div class="card-body">
+                                    <h4 class="card-title"><i class="fa fa-cube" aria-hidden="true" /></i> 主机监控</h4>
+                                    <p class="card-text">为拓扑图中的某一台设备增加Zabbix监控数据图表</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card g-card-button" style="height: 160px;" onclick="hop_zabbix_template()">
+                                <div class="card-body">
+                                    <h4 class="card-title"><i class="fa fa-cubes" aria-hidden="true" /></i> 监控模板</h4>
+                                    <p class="card-text">为一个节点类型统一增加Zabbix监控数据图表</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId5" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+                <div class="modal-header">
+                        <h5 class="modal-title">其他配置</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                    </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="card g-card-button" style="height: 160px;" onclick="hop_alert_suggestion()">
+                                <div class="card-body">
+                                    <h4 class="card-title"><i class="fa fa-user-md" aria-hidden="true" /></i> 告警建议</h4>
+                                    <p class="card-text">为拓扑图中出现的告警信息，给出一些建议。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    var user_gonggao_show_flag = "{{current_user.gonggao}}";
+    var ids = [];
+    var click_where = "";
+
+    function buttons() {
+        return {
+            btnUsersAdd: {
+                text: '添加收藏',
+                icon: 'fa-star',
+                event: function () {
+                    ids = [];
+                    let tops = $("#topology_table").bootstrapTable('getSelections');
+                    tops.forEach(element => {
+                        ids.push(element.id);
+                    });
+                    $("#modelId2").modal('show');
+                },
+                attributes: {
+                    title: '添加收藏'
+                }
+            },
+        }
+    }
+
+
+    function tingxianFormatter(value) {
+        if (value == "False") {
+            return ""
+        } else if (value == "True") {
+            return '<span class="badge badge-warning badge-pill">停线</span>'
+        }
+    }
+    function alertFormatter(value) {
+        if (value == "") {
+            return ""
+        } else {
+            return '<span class="badge badge-danger badge-pill">' + value + '</span>'
+        }
+    }
+
+    function eolFormatter(value) {
+        if (value == "False") {
+            return ""
+        } else if (value == "True") {
+            return '<span class="badge badge-warning badge-pill">EOL</span>'
+        }
+    }
+
+    function operateFormatter(value, row, index) {
+        return [
+            '<a class="view" href="javascript:void(0)" title="查看拓扑图">',
+            '<i class="fa fa-tachometer"></i>',
+            '</a>  ',
+        ].join('')
+    }
+
+    window.operateEvents = {
+        'click .view': function (e, value, row, index) {
+            location.href = "{{url_for('topology.topology_show')}}?topology_name=" + encodeURIComponent(row.name);
+        }
+    }
+
+    function detailFormatter(index, row) {
+        let html_array = [
+            `<p><strong>告警主机：</strong>${row.name}</p>`,
+            `<p><strong>影响节点：</strong>${row.ip}</p>`,
+            `<p><strong>影响项目：</strong></p>`,
+            "<ul>"
+        ]
+        row.topology_list.forEach(element => {
+            if (element.indexOf("已隐藏") == -1) {
+                html_array.push(`<li><a href="/topology/topology_show?topology_name=${element}" target="_blank" rel="noopener noreferrer">${element}</a></li>`);
+            } else {
+                html_array.push(`<li>${element}</li>`);
+            }
+        });
+        html_array.push("</ul>");
+        return html_array.join('');
+    }
+
+    function check_gonggao_show() {
+        let flag = $("#gonggao_show_flag").text();
+        if (user_gonggao_show_flag != flag) {
+            $("#modelId1").modal('show');
+            $.get("{{url_for('public.update_user_gonggao')}}", {
+                gonggao: flag,
+            },
+                function (data, textStatus, jqXHR) {
+                    if (data.error == 0) {
+                        console.log(data.info);
+                    }
+                },
+                "json"
+            );
+        }
+    }
+
+    function get_favorite() {
+        $.get("{{url_for('user.config_my_favorite')}}", {},
+            function (data, textStatus, jqXHR) {
+                console.log(data)
+                $("#profile").html(data);
+            },
+            "html"
+        );
+    }
+
+    function hop_node_metric() {
+        click_where = "node_metric";
+        $("#modelId10").modal('hide');
+    }
+
+    function hop_zabbix_template() {
+        location.href = "{{url_for('topology.zabbix_template_config_page')}}";
+    }
+
+    function hop_topology_config_nav() {
+        click_where = "config_nav";
+        $("#modelId3").modal('hide');
+    }
+
+    function hop_alert_suggestion() {
+        location.href = "{{url_for('topology.alert_suggestion_manage_page')}}";
+    }
+
+    function hop_ping_config() {
+        click_where = "ping_config";
+        $("#modelId4").modal("show");
+    }
+
+    $(function () {
+        setInterval(() => {
+            $("#topology_table").bootstrapTable('refresh');
+            $("#alert_same_table").bootstrapTable('refresh');
+        }, 30000)
+        check_gonggao_show()
+        get_favorite()
+
+        $("#nav_li_home").addClass("active");
+
+        $("#topology_table").on('click-row.bs.table', function (e, row, $element, field) {
+            if (field != 'state' && field != 'operate')
+                location.href = "{{url_for('topology.topology_show')}}?topology_name=" + encodeURIComponent(row.name);
+        });
+
+        $("#topology_config_nav_tab").on('click-row.bs.table', function (e, row, $element, field) {
+            if (click_where == "node_metric") {
+                location.href = "{{url_for('topology.node_metric_config_page')}}?topology_name=" + encodeURIComponent(row.name);
+            } else if(click_where == "ping_config") {
+                location.href = "{{url_for('topology.ping_config_nav')}}?topology_name=" + encodeURIComponent(row.name);
+            } else {
+                location.href = "{{url_for('topology.topology_config_nav')}}?topology_name=" + encodeURIComponent(row.name);
+            }
+        });
+
+        $("#modelId2_add_btn").click(function (e) {
+            e.preventDefault();
+            $.get("{{url_for('user.config_my_favorite')}}", {
+                ids: ids,
+                group_name: $("#modelId2_group_name").val(),
+                operate: 1
+            },
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        get_favorite()
+                    }
+                },
+                "json"
+            );
+        });
+
+        $(".wait_online_alert").click(function (e) {
+            e.preventDefault();
+            toastr.warning('功能尚未上线，请稍后')
+        });
+
+        $("#new_topology_create").click(function (e) {
+            e.preventDefault();
+            location.href = "{{url_for('topology.topology_config_nav')}}"
+        });
+
+        $("#modelId4").on('show.bs.modal', function (event) {
+            let data = $("#topology_table").bootstrapTable('getData');
+            $("#topology_config_nav_tab").bootstrapTable('load', data);
+        });
+
+        
+        $("#modelId4").on('hidden.bs.modal', function () {
+            click_where = "";
+        });
+        $("#modelId10").on('hidden.bs.modal', function () {
+            if(click_where != ""){
+                $("#modelId4").modal('show');
+            }
+        });
+        $("#modelId3").on('hidden.bs.modal', function () {
+            if(click_where != ""){
+                $("#modelId4").modal('show');
+            }
+        });
+    });
+</script>
+
+{% endblock %}

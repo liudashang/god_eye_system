@@ -1,0 +1,17 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="blueEyeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00c8ff"/>
+      <stop offset="100%" stop-color="#0044aa"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 外框 / 上眼皮轮廓 -->
+  <path fill="url(#blueEyeGrad)" d="M256 96C380 96 480 224 480 256C480 288 380 416 256 416C132 416 32 288 32 256C32 224 132 96 256 96Z"/>
+
+  <!-- 中间白色眼缝 -->
+  <path fill="#ffffff" d="M256 160C360 160 448 244 448 256C448 268 360 352 256 352C152 352 64 268 64 256C64 244 152 160 256 160Z"/>
+
+  <!-- 中央眼球 -->
+  <circle cx="256" cy="256" r="64" fill="url(#blueEyeGrad)"/>
+</svg>

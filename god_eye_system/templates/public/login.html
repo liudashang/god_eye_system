@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>天眼系统——IT故障分析平台</title>
+
+  <link rel="canonical" href="https://v4.bootcss.com/docs/examples/sign-in/">
+
+
+
+  <!-- Bootstrap core CSS -->
+  <link href="{{ static_url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+
+
+
+  <!-- Favicons -->
+  <link rel="icon" href="/static/img/favicon.ico">
+  <meta name="theme-color" content="#563d7c">
+
+
+  <style>
+    .bd-placeholder-img {
+      font-size: 1.125rem;
+      text-anchor: middle;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    @media (min-width: 768px) {
+      .bd-placeholder-img-lg {
+        font-size: 3.5rem;
+      }
+    }
+  </style>
+
+
+  <!-- Custom styles for this template -->
+  <link href="{{ static_url_for('static', filename='css/signin.css') }}" rel="stylesheet">
+</head>
+
+<body class="text-center">
+
+  <form class="form-signin" method="POST" action="{{ url_for('public.home') }}">
+    <img class="mb-4" src="/static/img/bootstrap-solid.svg" alt="" width="100" height="100">
+    <h1 class="h3 mb-3 font-weight-normal" id="i_want_show_login">天眼系统</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if messages %}
+    <div class="row">
+      <div class="col-md-12">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+          <a class="close" title="Close" href="#" data-dismiss="alert">&times;</a>
+          {{ message }}
+        </div>
+        <!-- end .alert -->
+        {% endfor %}
+      </div>
+      <!-- end col-md -->
+    </div>
+    <!-- end row -->
+    {% endif %} {% endwith %}
+    <label for="inputEmail" class="sr-only">账户</label>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <input type="text" id="inputEmail" name="username" class="form-control" placeholder="账户" required autofocus>
+    <label for="inputPassword" class="sr-only">密码</label>
+    <input type="password" id="inputPassword" name="password" class="form-control" placeholder="密码" required>
+    <!--<div class="checkbox mb-3">
+    <label>
+      <input type="checkbox" value="remember-me"> 记住账户名密码
+    </label>
+    </div>-->
+    <button class="btn btn-lg btn-primary btn-block" type="submit">登录</button>
+
+    <p class="mt-5 mb-3 text-muted">&copy;ZhenRan Studio 2026</p>
+  </form>
+
+  <script src="{{ static_url_for('static', filename='js/jquery-3.6.0.min.js') }}"></script>
+  <script src="{{ static_url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+  <script>
+    $(function () {
+
+    });
+  </script>
+
+</body>
+
+</html>

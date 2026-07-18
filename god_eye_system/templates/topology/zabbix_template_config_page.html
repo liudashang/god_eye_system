@@ -1,0 +1,199 @@
+{% extends "layout.html" %}
+{% block css %}
+<link rel="stylesheet" type="text/css" href="{{ static_url_for('static', filename='css/colpick.css') }}" />
+<link rel="stylesheet" type="text/css" href="{{ static_url_for('static', filename='css/bootstrap-select.min.css') }}" />
+<style>
+    table {
+        font-size: 12px;
+    }
+
+    div.seperate-line {
+        background-color: rgb(182, 219, 219);
+        text-align: center;
+    }
+
+    .g-dark-anchor {
+        height: 60px;
+        margin-top: -60px;
+    }
+
+    div.seperate-line {
+        background-color: rgb(182, 219, 219);
+        text-align: center;
+    }
+
+    body {
+        background-color: #e6e6e6;
+    }
+
+    .g-topology-show {
+        height: 240px;
+    }
+
+    .g-card-button {
+        -webkit-transition-duration: 0.4s;
+        /* Safari */
+        transition-duration: 0.4s;
+        cursor: pointer;
+    }
+
+    .g-card-button:hover {
+        background-color: #f3f3f3;
+    }
+
+    .g-row-basis {
+        background-color: #f3f3f3;
+    }
+
+    .g-row-link {
+        background-color: #f3f3f3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if topology_name != "" %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a
+                href="{{url_for('topology.topology_config_nav',topology_name=topology_name)}}">{{topology_name}}设置</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">监控模板设置</li>
+    </ol>
+</nav>
+{% endif %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">{{topology_name}}主机监控设置</h1>
+        <p class="lead">
+            您可以为某一中类型的设备增加Zabbix监控数据报表。<br>
+            请在Zabbix中确认目标监控项的名称，并复制到表中创建。
+        </p>
+        {% if topology_name != '' %}
+        <button type="button" class="btn btn-primary" id="view_topology_show"><i class="fa fa-share"
+                aria-hidden="true"></i>查看拓扑图</button>
+        <button type="button" class="btn btn-primary" id="view_topology_config"><i class="fa fa-share"
+                aria-hidden="true"></i>返回设置</button>
+        {% endif %}
+    </div>
+</div>
+<div class="container">
+    <div class="row">
+        <div class="col-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">创建监控图表</h4>
+                    <form id="add_new_zabbixtemplate_form">
+                        <div class="form-group">
+                            <label for="add_new_zabbixtemplate_node_type">节点类型</label>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <select class="form-control" name="node_type" id="add_new_zabbixtemplate_node_type">
+                                {% for n in node_types %}
+                                <option value="{{n.name}}">{{n.cn_name}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="add_new_zabbixtemplate_item">监控项名称</label>
+                            <input type="text" class="form-control" name="item" id="add_new_zabbixtemplate_item">
+                        </div>
+                        <div class="form-group">
+                            <label for="add_new_nodemetric_grafana_src">Grafana网址</label>
+                            <textarea class="form-control" name="grafana_src" id="add_new_nodemetric_grafana_src"
+                                rows="3"></textarea>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm"
+                            id="add_new_zabbixtemplate_form_submit">增加</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">监控图表明细</h4>
+                    <button type="button" class="btn btn-danger btn-sm"
+                            id="add_new_zabbixtemplate_form_delete">删除选中</button>
+                    <table id="zabbixtemplate_table" data-toggle="table" data-locale="zh-CN" data-click-to-select="true"
+                        data-search="true" data-server-sort="false"
+                        data-url="{{url_for('topology.zabbixtemplate_list')}}" data-pagination="true">
+                        <thead>
+                            <tr>
+                                <th data-field="state" data-checkbox="true"></th>
+                                <th data-field="id" data-sortable="true">ID</th>
+                                <th data-field="node_type" data-formatter="nodeTypeFormatter" data-sortable="true">节点类型
+                                </th>
+                                <th data-field="grafana_src" data-sortable="true">Grafana网址
+                                </th>
+                                <th data-field="item" data-sortable="true">监控项名称</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="{{ static_url_for('static', filename='js/colpick.js') }}"></script>
+<script src="{{ static_url_for('static', filename='js/bootstrap-select.min.js') }}"></script>
+<script>
+    const topology_name = "{{topology_name}}";
+
+    function nodeTypeFormatter(value, row) {
+        return row.node_type_cn_name;
+    }
+
+    $(function () {
+
+        $("#add_new_zabbixtemplate_form_submit").click(function (e) {
+            e.preventDefault();
+            if ($("#add_new_zabbixtemplate_item").val() == "") {
+                toastr.warning("各参数不能为空！");
+                return false;
+            }
+            $.post("{{url_for('topology.zabbixtemplate_list')}}", $("#add_new_zabbixtemplate_form").serializeArray(), function (data) {
+                if (data.error == 1) {
+                    toastr.warning(data.info);
+                } else {
+                    toastr.success(data.info);
+                    $("#zabbixtemplate_table").bootstrapTable('refresh');
+                }
+            });
+        });
+
+        $("#add_new_zabbixtemplate_form_delete").click(function (e) {
+            e.preventDefault();
+            let rows = $("#zabbixtemplate_table").bootstrapTable('getSelections');
+            if (rows.length == 0) {
+                return;
+            }
+            rows.forEach(el => {
+                $.get("{{ url_for('topology.edit_zabbixtemplate_info') }}", {
+                    id: el.id
+                }, data => {
+                    if (data.error == 1) {
+                        toastr.warning(data.info);
+                    } else {
+                        $("#zabbixtemplate_table").bootstrapTable('refresh');
+                        toastr.success(data.info);
+                    }
+                });
+            });
+        });
+
+        $("#view_topology_show").click(function (e) {
+            e.preventDefault();
+            location.href = "{{url_for('topology.topology_show')}}?topology_name=" + encodeURIComponent(topology_name);
+        });
+        $("#view_topology_config").click(function (e) {
+            e.preventDefault();
+            location.href = "{{url_for('topology.topology_config_nav',topology_name=topology_name)}}";
+        });
+    });
+</script>
+{% endblock %}

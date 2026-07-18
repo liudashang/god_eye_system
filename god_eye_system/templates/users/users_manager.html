@@ -1,0 +1,395 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <table id="users_table" data-toggle="table" data-locale="zh-CN" data-click-to-select="true"
+                data-search="true" data-url="{{url_for('api.users_manager')}}" data-side-pagination="server"
+                data-pagination="true">
+                <thead>
+                    <tr>
+                        <th data-field="state" data-checkbox="true"></th>
+                        <th data-field="id">ID</th>
+                        <th data-field="username">AD账户</th>
+                        <th data-field="first_name">姓名</th>
+                        <th data-field="active" data-formatter="activeFormater">状态</th>
+                        <th data-field="operate" data-click-to-select="false" data-formatter="operateFormatter"
+                            data-events="operateEvents">操作</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">用户信息编辑</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <form id="edit_form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <input type="hidden" name="id" id="edit_user_id" />
+                                <div class="form-group">
+                                    <label for="">姓名</label>
+                                    <input type="text" class="form-control" name="first_name" id="edit_user_first_name"
+                                        placeholder="">
+                                </div>
+                                <div class="form-check">
+                                    <label class="form-check-label">
+                                        <input type="checkbox" class="form-check-input" name="active"
+                                            id="edit_user_active" value="true" checked>
+                                        账户启用
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <label class="form-check-label">
+                                        <input type="checkbox" class="form-check-input" name="is_admin"
+                                            id="edit_user_is_admin" value="true" checked>
+                                        管理员
+                                    </label>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="edit_save">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId1" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">权限增加</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="create-g-or-u-form">
+                    <input type="hidden" name="id" id="create-g-or-u-form-id" />
+                    <input type="hidden" name="operate" id="create-g-or-u-form-operate" value="1" />
+                    <input type="hidden" name="name" id="create-g-or-u-form-name" value="g_or_u">
+                    <div class="form-group">
+                        <label for="">权限类型</label>
+                        <select class="form-control" name="value" id="create-g-or-u-form-value">
+                            <option value="bg">BG</option>
+                            <option value="bu">BU</option>
+                            <option value="one_top">指定项目</option>
+                        </select>
+                    </div>
+                    <input type="hidden" name="name" id="create-config-form-name" value="has_config">
+                    <div class="form-group">
+                        <label for="">是否有配置权限</label>
+                        <select class="form-control" name="value" id="create-config-form-value">
+                            <option value="0">否</option>
+                            <option value="1">是</option>
+                        </select>
+                    </div>
+                    <input type="hidden" name="name" id="create-one-topology-name" value="has_one_topology">
+                    <div class="form-group d-none" id="one-top-need-hide">
+                        <label for="">指定项目</label>
+                        <select multiple class="form-control" name="value" id="create-one-topology-value">
+                            {% for t in topology_list %}
+                            <option>{{t}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <input type="hidden" name="name" id="create-bg-form-name" value="bg_fanwei">
+                    <div class="form-group" id="bg-need-hide">
+                        <label for="">BG</label>
+                        <select multiple class="form-control" name="value" id="create-bg-form-value">
+                        </select>
+                    </div>
+                    <input type="hidden" name="name" id="create-bu-form-name" value="bu_fanwei">
+                    <div class="form-group d-none" id="bu-need-hide">
+                        <label for="">BU</label>
+                        <select multiple class="form-control" name="value" id="create-bu-form-value">
+                        </select>
+                    </div>
+                    <input type="hidden" name="name" id="edit-node-info-name" value="has_edit_node_info">
+                    <div class="form-group">
+                        <label for="">是否有快捷修改Node权限</label>
+                        <select class="form-control" name="value" id="edit-node-info-value">
+                            <option value="0">否</option>
+                            <option value="1">是</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="create_role">创建</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    var $table = $('#users_table');
+
+    const csrf_token = "{{csrf_token()}}";
+
+    function operateFormatter(value, row, index) {
+        return [
+            '<a class="edit" href="javascript:void(0)" title="编辑">',
+            '<i class="fa fa-pencil-square-o"></i>',
+            '</a>  ',
+            '<a class="quanxian" href="javascript:void(0)" title="增加权限">',
+            '<i class="fa fa-eye"></i>',
+            '</a>  ',
+            '<a class="remove d-none" href="javascript:void(0)" title="Remove">',
+            '<i class="fa fa-trash"></i>',
+            '</a>'
+        ].join('')
+    }
+
+    window.operateEvents = {
+        'click .edit': function (e, value, row, index) {
+            $("#edit_user_id").val(row.id)
+            $("#edit_user_first_name").val(row.first_name)
+            if (row.is_admin) {
+                $("#edit_user_is_admin").prop("checked", true)
+            } else {
+                $("#edit_user_is_admin").prop("checked", false)
+            }
+            if (row.active) {
+                $("#edit_user_active").prop("checked", true)
+            } else {
+                $("#edit_user_active").prop("checked", false)
+            }
+            $('#modelId').modal('show')
+        },
+        'click .quanxian': function (e, value, row, index) {
+            $("#create-g-or-u-form-id").val(row.id);
+            $("#create-bg-form-value").empty();
+            $.get("{{url_for('user.bu_list_simple')}}", {},
+                function (data, textStatus, jqXHR) {
+                    data.forEach(element => {
+                        $("#create-bg-form-value").append(`<option>${element}</option>`);
+                    });
+                    $.get("{{url_for('user.user_roles_info')}}", {
+                        user_id: row.id
+                    },
+                        function (data, textStatus, jqXHR) {
+                            $("#create-g-or-u-form-value").val(data.g_or_u);
+                            $("#create-g-or-u-form-value").change();
+                            $("#create-config-form-value").val(data.has_config);
+                            $("#edit-node-info-value").val(data.has_edit_node_info);
+
+                            if (data.g_or_u == 'bu') {
+                                $("#create-bg-form-value").val(data.bg_fanwei);
+                                let bu_fanwei = data.bu_fanwei.split(',');
+                                console.log(bu_fanwei);
+                                $.get("{{url_for('user.bu_list_simple_bu')}}", {
+                                    bu_parent: data.bg_fanwei
+                                },
+                                    function (data, textStatus, jqXHR) {
+                                        $("#create-bu-form-value").empty();
+                                        data.forEach(element => {
+                                            $("#create-bu-form-value").append(`<option>${element}</option>`);
+                                        });
+                                        $("#create-bu-form-value").val(bu_fanwei);
+                                        $('#modelId1').modal('show');
+                                    },
+                                    "json"
+                                );
+                            } else if (data.g_or_u == 'one_top') {
+                                let topology_fanwei = data.topology.split(',');
+                                $("#create-one-topology-value").val(topology_fanwei);
+                                $('#modelId1').modal('show');
+                            } else {
+
+                                let bg_fanwei = data.bg_fanwei.split(',');
+                                $("#create-bg-form-value").val(bg_fanwei);
+                                $('#modelId1').modal('show');
+                            }
+                        },
+                        "json"
+                    );
+                },
+                "json"
+            );
+        },
+        'click .remove': function (e, value, row, index) {
+            $table.bootstrapTable('remove', {
+                field: 'id',
+                values: [row.id]
+            })
+        }
+    }
+
+    function activeFormater(value) {
+        if (value) {
+            return "启用"
+        } else {
+            return "禁用"
+        }
+    }
+
+    $(function () {
+        $("#nav_li_system").addClass("active");
+        $("#edit_save").click(function (e) {
+            $.post("{{url_for('api.users_manager')}}", $("#edit_form").serializeArray(), function (data) {
+                if (api_result(data)) {
+                    $('#modelId').modal('hide');
+                    $table.bootstrapTable('refresh');
+                }
+            });
+        });
+        $("#create_role").click(function (e) {
+            let user_id = $("#create-g-or-u-form-id").val();
+            let name = $("#create-g-or-u-form-name").val();
+            let value = $("#create-g-or-u-form-value").val();
+            let bu_flag = false;
+            if (value == "bu") {
+                bu_flag = true
+            }
+            console.log(name, value);
+            $.post("{{url_for('api.users_roles')}}", {
+                csrf_token: csrf_token,
+                user_id: user_id,
+                name: name,
+                value: value
+            }, function (data) {
+                api_result(data);
+            });
+            name = $("#create-config-form-name").val();
+            value = $("#create-config-form-value").val();
+            $.post("{{url_for('api.users_roles')}}", {
+                csrf_token: csrf_token,
+                user_id: user_id,
+                name: name,
+                value: value
+            }, function (data) {
+                api_result(data);
+            });
+            name = $("#edit-node-info-name").val();
+            value = $("#edit-node-info-value").val();
+            $.post("{{url_for('api.users_roles')}}", {
+                csrf_token: csrf_token,
+                user_id: user_id,
+                name: name,
+                value: value
+            }, function (data) {
+                api_result(data);
+            });
+            name = $("#create-one-topology-name").val();
+            value = $("#create-one-topology-value").val();
+            value = value.join(',');
+            $.post("{{url_for('api.users_roles')}}", {
+                csrf_token: csrf_token,
+                user_id: user_id,
+                name: name,
+                value: value
+            }, function (data) {
+                api_result(data);
+            });
+            name = $("#create-bg-form-name").val();
+            value = $("#create-bg-form-value").val();
+            if (!bu_flag) {
+                value = value.join(',');
+            }
+            $.post("{{url_for('api.users_roles')}}", {
+                csrf_token: csrf_token,
+                user_id: user_id,
+                name: name,
+                value: value
+            }, function (data) {
+                api_result(data);
+            });
+            if (bu_flag) {
+
+                name = $("#create-bu-form-name").val();
+                value = $("#create-bu-form-value").val();
+                value = value.join(',');
+                $.post("{{url_for('api.users_roles')}}", {
+                    csrf_token: csrf_token,
+                    user_id: user_id,
+                    name: name,
+                    value: value
+                }, function (data) {
+                    api_result(data);
+                });
+            }
+        });
+
+        $('#modelId1').on('hidden.bs.modal', function (event) {
+            // do something...
+            $("#create-g-or-u-form-id").val('');
+            $("#create-bg-form-value").attr("multiple", "");
+            $("#bu-need-hide").addClass("d-none");
+        })
+
+        $("#create-g-or-u-form-value").change(function (e) {
+            e.preventDefault();
+            var fanwei_type = $("#create-g-or-u-form-value").val();
+            if (fanwei_type == "bg") {
+                $("#create-bg-form-value").attr("multiple", "");
+                $("#bg-need-hide").removeClass("d-none");
+                $("#bu-need-hide").addClass("d-none");
+                $("#bg-need-hide").removeClass("d-none");
+                $("#one-top-need-hide").addClass("d-none");
+            } else if (fanwei_type == "one_top") {
+                $("#bg-need-hide").addClass("d-none");
+                $("#bu-need-hide").addClass("d-none");
+                $("#one-top-need-hide").removeClass("d-none");
+                $("#create-one-topology-value").val([]);
+            } else {
+                $("#one-top-need-hide").addClass("d-none");
+                $("#create-bg-form-value").removeAttr("multiple");
+                $("#create-bu-form-value").empty();
+                $("#bu-need-hide").removeClass("d-none");
+                $("#bg-need-hide").removeClass("d-none");
+                $.get("{{url_for('user.bu_list_simple_bu')}}", {
+                    bu_parent: $("#create-bg-form-value").val()
+                },
+                    function (data, textStatus, jqXHR) {
+                        data.forEach(element => {
+                            $("#create-bu-form-value").append(`<option>${element}</option>`);
+                        });
+                    },
+                    "json"
+                );
+            }
+        });
+
+        $("#create-bg-form-value").change(function (e) {
+            e.preventDefault();
+            let g_or_u = $("#create-g-or-u-form-value").val();
+            if (g_or_u == "bu") {
+
+                $("#create-bu-form-value").empty();
+                $.get("{{url_for('user.bu_list_simple_bu')}}", {
+                    bu_parent: $("#create-bg-form-value").val()
+                },
+                    function (data, textStatus, jqXHR) {
+                        data.forEach(element => {
+                            $("#create-bu-form-value").append(`<option>${element}</option>`);
+                        });
+                    },
+                    "json"
+                );
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,186 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <td scope="row">待处理部门</td>
+                        <td>{{bu.name}}</td>
+                    </tr>
+                    <tr>
+                        <td scope="row">上级部门</td>
+                        <td>{{bu.bu_parent}}</td>
+                    </tr>
+                    <tr>
+                        <td scope="row">确定撤销部门？</td>
+                        <td><button type="button" class="btn btn-primary btn-sm" id="bu_delete_submit">确定</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <h5>有该部门权限的人员</h5>
+            <small>——下列人员的权限将被撤销</small>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>姓名</th>
+                        <th>ID</th>
+                        <th>是否有配置权限</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in roles %}
+                    <tr>
+                        <td scope="row">{{r.user.first_name}}</td>
+                        <td scope="row" class="myself-user-id">{{r.user.id}}</td>
+                        {% if r.user.get_role_value('has_config') == '1' %}
+                        <td>是</td>
+                        {% else %}
+                        <td>否</td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <h5>属于该部门的项目</h5>
+            <small>——下列项目属于该部门，部门撤销后下列项目将无法查看，请先将需要的移到其他部门名下</small>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>项目名称</th>
+                        <th>所属一级部门</th>
+                        <th>所属二级部门</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in topologys %}
+                    <tr>
+                        <td scope="row" class="myself-topology-name">{{t.name}}</td>
+                        <td class="myself-topology-bg">{{t.bg}}</td>
+                        <td class="myself-topology-bu">{{t.bu}}</td>
+                        <td><button type="button" class="btn btn-primary btn-sm myself-topology-button">修改</button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId1" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">修改所属部门</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="change_bu_bg_form">
+                    <input type="hidden" name="topology_name" id="change_bu_bg_form_topology_name">
+                    <div class="form-group">
+                        <label for="">所属一级部门</label>
+                        <select class="form-control" name="bg" id="change_bu_bg_form_bg">
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="">所属二级部门</label>
+                        <select class="form-control" name="bu" id="change_bu_bg_form_bu">
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="change_bu_bg_form_submit">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    const bu_id = "{{bu.id}}";
+    var need_input_bu = "";
+
+    $(function () {
+
+        $("#nav_li_system").addClass("active");
+        $(".myself-topology-button").click(function (e) {
+            e.preventDefault();
+            var button = e.target;
+            var topology_name = $(button).parent().siblings().filter(".myself-topology-name").text();
+            var bg = $(button).parent().siblings().filter(".myself-topology-bg").text();
+            var bu = $(button).parent().siblings().filter(".myself-topology-bu").text();
+            
+            $("#change_bu_bg_form_topology_name").val(topology_name);
+            $.get("{{url_for('user.bu_list_simple')}}",{},
+                function (data, textStatus, jqXHR) {
+                    $("#change_bu_bg_form_bg").empty();
+                    console.log(data)
+                    data.forEach(element => {
+                        $("#change_bu_bg_form_bg").append(`<option>${element}</option>`);
+                    });
+                    $("#change_bu_bg_form_bg").val(bg).change();
+                    need_input_bu = bu;
+                },
+                "json"
+            );
+            $("#modelId1").modal('show');
+        });
+
+        $("#change_bu_bg_form_bg").change(function (e) { 
+            e.preventDefault();
+            let bg = $("#change_bu_bg_form_bg").val();
+            $("#change_bu_bg_form_bu").empty();
+            $.get("{{url_for('user.bu_list_simple_bu')}}",{bu_parent:bg},
+                function (data, textStatus, jqXHR) {
+                    data.forEach(element => {
+                        $("#change_bu_bg_form_bu").append(`<option>${element}</option>`);
+                    });
+                    if (need_input_bu != ""){
+
+                        $("#change_bu_bg_form_bu").val(need_input_bu);
+                        need_input_bu = "";
+                    }
+                },
+                "json"
+            );
+        });
+
+        $("#change_bu_bg_form_submit").click(function (e) { 
+            e.preventDefault();
+            $.get("{{url_for('topology.change_topology_by_change_bu')}}", $("#change_bu_bg_form").serialize(),
+                function (data, textStatus, jqXHR) {
+                    api_result(data);
+                },
+                "json"
+            );
+        });
+
+        $("#bu_delete_submit").click(function (e) { 
+            e.preventDefault();
+            $.get("{{url_for('user.delete_bu')}}", {id:bu_id},
+                function (data, textStatus, jqXHR) {
+                    api_result(data);
+                },
+                "json"
+            );
+        });
+    });
+</script>
+{% endblock %}

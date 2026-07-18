@@ -1,0 +1,204 @@
+{% extends "layout.html" %}
+{% block css %}
+<style>
+    table {
+        font-size: 12px;
+    }
+
+    div.seperate-line {
+        background-color: rgb(182, 219, 219);
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="seperate-line">
+        <h5>告警建议管理</h5>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <table id="suggestion_table" data-toggle="table" data-locale="zh-CN" data-click-to-select="true"
+                data-url="{{url_for('topology.alert_suggestion_manage_page',operate=1)}}" data-pagination="true"
+                data-search="true" data-buttons="buttons" data-buttons-align="left">
+                <thead>
+                    <tr>
+                        <th data-field="state" data-checkbox="true"></th>
+                        <th data-field="node_type" data-formatter="nodetypeFormatter">节点类型</th>
+                        <th data-field="name">名称</th>
+                        <th data-field="regexp_string">正则表达式</th>
+                        <th data-field="reason">原因</th>
+                        <th data-field="suggestion">建议</th>
+                        <th data-field="operate" data-formatter="operateFormatter" data-events="operateEvents"
+                            data-click-to-select="false">操作</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modelId1" tabindex="-1" role="dialog" aria-labelledby="modelTitleId" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑建议</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="modelId1_form">
+                    <div class="form-group">
+                        <label for="">节点类型</label>
+                        <input type="hidden" name="id" id="modelId1_form_id">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <select class="form-control" name="node_type" id="modelId1_form_node_type">
+                            {% for n in node_types %}
+                            <option value="{{n.name}}">{{n.cn_name}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="">名称</label>
+                        <input type="text" class="form-control" name="name" id="modelId1_form_name">
+                    </div>
+                    <div class="form-group">
+                        <label for="">正则表达式</label>
+                        <input type="text" class="form-control" name="regexp_string" aria-describedby="helpId"
+                            id="modelId1_form_regexp_string">
+                        <small id="helpId" class="form-text text-muted">正则表达式写法请参考<a
+                                href="https://www.runoob.com/mysql/mysql-regexp.html" target="_blank">菜鸟教程</a></small>
+                    </div>
+                    <div class="form-group">
+                        <label for="">原因</label>
+                        <input type="text" class="form-control" name="reason" id="modelId1_form_reason">
+                    </div>
+                    <div class="form-group">
+                        <label for="">建议</label>
+                        <input type="text" class="form-control" name="suggestion" id="modelId1_form_suggestion">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary d-none" id="modelId1_submit_new">新增</button>
+                <button type="button" class="btn btn-primary" id="modelId1_submit_edit">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    function buttons() {
+        return {
+            bAddSuggestion: {
+                text: '新增',
+                icon: 'fa-plus',
+                event: addNewSuggestion,
+                attributes: {
+                    titile: '新增建议'
+                }
+            },
+            bTrash: {
+                text: '删除',
+                icon: 'fa-trash-o',
+                event: trashSuggestion,
+                attributes: {
+                    titile: '删除建议'
+                }
+            },
+        }
+    }
+
+    function addNewSuggestion() {
+        $("#modelId1").modal('show');
+        trigger_modelId1_button();
+    }
+
+    function nodetypeFormatter(value, row, index) {
+        return row.node_type_cn_name;
+    }
+
+    function trashSuggestion() {
+        let rows = $("#suggestion_table").bootstrapTable('getSelections');
+        let ids = []
+        rows.forEach(element => {
+            ids.push(element.id);
+        });
+        $.get("{{url_for('topology.alert_suggestion_del')}}", {
+            ids: ids,
+        },
+            function (data, textStatus, jqXHR) {
+                if (api_result(data)) {
+                    $('#suggestion_table').bootstrapTable('refresh');
+                }
+            },
+            "json"
+        );
+    }
+
+    function trigger_modelId1_button(new_flag = true) {
+        if (new_flag) {
+            $("#modelId1_submit_edit").addClass('d-none');
+            $("#modelId1_submit_new").removeClass('d-none');
+        } else {
+            $("#modelId1_submit_edit").removeClass('d-none');
+            $("#modelId1_submit_new").addClass('d-none');
+        }
+    }
+
+    function operateFormatter(value, row, index) {
+        return [
+            '<a class="edit" href="javascript:void(0)" title="修改">',
+            '<i class="fa fa-pencil-square-o"></i>',
+            '</a>  '
+        ].join('')
+    }
+
+    window.operateEvents = {
+        'click .edit': function (e, value, row, index) {
+            $("#modelId1_form_name").val(row.name);
+            $("#modelId1_form_id").val(row.id);
+            $("#modelId1_form_node_type").val(row.node_type);
+            $("#modelId1_form_regexp_string").val(row.regexp_string);
+            $("#modelId1_form_reason").val(row.reason);
+            $("#modelId1_form_suggestion").val(row.suggestion);
+            $('#modelId1').modal('show');
+            trigger_modelId1_button(false);
+        }
+    }
+
+    $(function () {
+        $("#nav_li_topology").addClass("active");
+        $("#modelId1_submit_new").click(function (e) {
+            e.preventDefault();
+            $.post("{{url_for('topology.alert_suggestion_add')}}", $("#modelId1_form").serializeArray(),
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        $('#modelId1').modal('hide');
+                        $('#suggestion_table').bootstrapTable('refresh');
+                    }
+                },
+                "json"
+            );
+        });
+        $("#modelId1_submit_edit").click(function (e) {
+            e.preventDefault();
+            $.post("{{url_for('topology.alert_suggestion_edit')}}", $("#modelId1_form").serializeArray(),
+                function (data, textStatus, jqXHR) {
+                    if (api_result(data)) {
+                        $('#modelId1').modal('hide');
+                        $('#suggestion_table').bootstrapTable('refresh');
+                    }
+                },
+                "json"
+            );
+        });
+    });
+</script>
+{% endblock %}
