@@ -44,6 +44,19 @@ class LinkSmokePingEvent(db.Model):
         """Represent instance as a unique string."""
         return f"<LinkSmokePingEvent({self.alert_name!r}-{self.host_ip!r})>"
 
+class AlertCenterCache(db.Model):
+    __tablename__ = 'alert_center_caches'
+    id = db.Column(db.Integer, primary_key=True)
+    alert_host = db.Column(db.String(256),nullable=False)
+    alert_info = db.Column(db.String(1024),nullable=False,default='')
+    alert_time = db.Column(db.DateTime,nullable=False)
+    alert_level = db.Column(db.String(64),nullable=False,default='')
+    eventid = db.Column(db.BigInteger,nullable=False,default=0)
+    
+    def __repr__(self):
+        """Represent instance as a unique string."""
+        return f"<AlertCenterCache({self.alert_host!r})>"
+
 
 @app.route('/',methods=['POST'])
 def index():
@@ -76,6 +89,24 @@ def multi_alerts():
     for data in alert_data:
         lspe = LinkSmokePingEvent(alert_name=data['alert_name'],node_path=data["node_path"],alert_info=data["alert_info"],host_ip=data["host_ip"])
         db.session.add(lspe)
+    db.session.commit()
+    return {"info":"接收成功"}
+
+@app.route('/node_alerts',methods=['POST'])
+def node_alerts():
+    '''form格式的数据'''
+    data = request.form.to_dict()
+    alert_center_cache = AlertCenterCache(alert_host=data['alert_host'],alert_info=data['alert_info'],alert_time=data['alert_time'],alert_level=data['alert_level'],eventid=data['eventid'])
+    db.session.add(alert_center_cache)
+    db.session.commit()
+    return {"info":"接收成功"}
+
+@app.route('/node_alerts_for_json',methods=['POST'])
+def node_alerts_for_json():
+    '''json格式的数据'''
+    data = request.json
+    alert_center_cache = AlertCenterCache(alert_host=data['alert_host'],alert_info=data['alert_info'],alert_time=data['alert_time'],alert_level=data['alert_level'],eventid=data['eventid'])
+    db.session.add(alert_center_cache)
     db.session.commit()
     return {"info":"接收成功"}
 
