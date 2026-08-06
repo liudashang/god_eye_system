@@ -53,7 +53,7 @@ def task():
         alert_name = "linkdown"
 
     data = {"alert_name":alert_name,"node_path":node_path,"alert_info":alert_info,"host_ip":sys.argv[5]}
-    r = requests.post('http://10.10.119.175:5000',data=data)
+    r = requests.post('http://127.0.0.1:5000',data=data)
     print(r.text)
 
 
