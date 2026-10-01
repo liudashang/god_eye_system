@@ -79,6 +79,7 @@ class User(UserMixin, PkModel):
         return False
     
     def get_topology_list(self,obj_list=False):
+        tps = []
         if self.is_admin:
             tps = Topology.query.order_by(Topology.name).all()
         elif self.get_role_value('g_or_u') == 'bg':

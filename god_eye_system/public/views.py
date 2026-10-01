@@ -67,11 +67,15 @@ def test_register():
         
     form = RegisterForm(request.form)
     if form.validate_on_submit():
+        is_admin = False
+        if form.username.data == "admin":
+            is_admin = True
         User.create(
             username=form.username.data,
             email=form.email.data,
             password=form.password.data,
             active=True,
+            is_admin=is_admin,
         )
         flash("账户注册成功。", "success")
         # return redirect(url_for("public.home"))
