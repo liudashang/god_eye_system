@@ -7,7 +7,7 @@
 > - ✅ Allowed: For personal non-commercial scenarios, local deployment and research **without modifying source code**
 > - ❌ Prohibited: Without written authorization from the copyright owner, modifying source code, creating derivative works, forking, public release or redistribution
 > - ❌ Prohibited: Any commercial usage, including enterprise internal deployment, SaaS services, packaged sales, integration into commercial products
-> - 💼 For commercial use, code modification or redistribution, commercial license purchase is required. Contact email: **your‑[email@example.com](mailto:email@example.com)**
+> - 💼 For commercial use, code modification or redistribution, commercial license purchase is required. Contact email: **liudashang‑[liudashang@sina.com](mailto:liudashang@sina.com)**
 > 
 > 
 > Please refer to the [`LICENSE`](./LICENSE) file in the repository root directory for the full legal license terms.
