@@ -40,5 +40,5 @@ Flask-DebugToolbar==0.16.0
 
 # Environment variable parsing
 environs==14.3.0
-pymysql>=1.2.0
+pymysql>=1.2.3
 pyjwt>=2.13.0
